@@ -7,7 +7,14 @@ from research_assistant_api.db.base import Base
 from research_assistant_api.db.session import get_engine, get_session_factory
 from research_assistant_api.ingestion.config import IngestionConfig
 from research_assistant_api.ingestion.service import CsvIngestionService
-from research_assistant_api.models import Author, Institution, Paper, PaperAuthor, Topic
+from research_assistant_api.models import (
+    Author,
+    Citation,
+    Institution,
+    Paper,
+    PaperAuthor,
+    Topic,
+)
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -31,6 +38,7 @@ def test_csv_ingestion_imports_topics_and_papers(sqlite_database_url: str) -> No
     assert summary.source_rows_processed == 2
     assert summary.papers_upserted == 2
     assert summary.topics_upserted == 2
+    assert summary.citation_import_skipped is True
 
     assert [topic.id for topic in topics] == [
         "topic:artificial-intelligence",
@@ -119,3 +127,27 @@ def test_csv_ingestion_imports_authors_institutions_and_authorships(
     ]
     assert authorships[0].is_corresponding is True
     assert authorships[-1].author_position == 2
+
+
+def test_csv_ingestion_imports_optional_citation_edges(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_openalex_leeds.csv",
+        citation_csv_path=FIXTURES_DIR / "sample_citation_edges.csv",
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        citations = session.scalars(select(Citation)).all()
+
+    assert summary.citation_import_skipped is False
+    assert summary.citations_upserted == 1
+    assert [(citation.citing_paper_id, citation.cited_paper_id) for citation in citations] == [
+        ("https://openalex.org/W2", "https://openalex.org/W1")
+    ]

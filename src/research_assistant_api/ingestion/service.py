@@ -18,7 +18,14 @@ from research_assistant_api.ingestion.parsing import (
     parse_int,
     split_pipe_values,
 )
-from research_assistant_api.models import Author, Institution, Paper, PaperAuthor, Topic
+from research_assistant_api.models import (
+    Author,
+    Citation,
+    Institution,
+    Paper,
+    PaperAuthor,
+    Topic,
+)
 
 
 @dataclass(slots=True)
@@ -274,6 +281,7 @@ class CsvIngestionService:
             authorship_batch,
             summary,
         )
+        self._import_citation_edges(config, summary)
         return summary
 
     def _flush_batch(
@@ -454,3 +462,49 @@ class CsvIngestionService:
         author_batch.clear()
         paper_batch.clear()
         authorship_batch.clear()
+
+    def _import_citation_edges(
+        self,
+        config: IngestionConfig,
+        summary: IngestionSummary,
+    ) -> None:
+        if config.citation_csv_path is None:
+            return
+
+        summary.citation_import_skipped = False
+        citation_batch: dict[tuple[str, str], dict[str, Any]] = {}
+
+        for row in iter_csv_rows(config.citation_csv_path):
+            citing_paper_id = normalize_optional_text(row.get("citing_paper_id"))
+            cited_paper_id = normalize_optional_text(row.get("cited_paper_id"))
+            if citing_paper_id is None or cited_paper_id is None:
+                continue
+
+            citation_batch[(citing_paper_id, cited_paper_id)] = {
+                "citing_paper_id": citing_paper_id,
+                "cited_paper_id": cited_paper_id,
+            }
+
+            if len(citation_batch) >= config.batch_size:
+                self._flush_citations(citation_batch, summary)
+
+        self._flush_citations(citation_batch, summary)
+
+    def _flush_citations(
+        self,
+        citation_batch: dict[tuple[str, str], dict[str, Any]],
+        summary: IngestionSummary,
+    ) -> None:
+        if not citation_batch:
+            return
+
+        citation_rows = list(citation_batch.values())
+        _upsert_rows(
+            self.session,
+            Citation.__table__,
+            citation_rows,
+            conflict_columns=["citing_paper_id", "cited_paper_id"],
+        )
+        self.session.commit()
+        summary.citations_upserted += len(citation_rows)
+        citation_batch.clear()

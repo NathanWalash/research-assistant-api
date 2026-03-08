@@ -17,6 +17,9 @@ dependencies = [
     "uvicorn[standard]>=0.32,<1.0",
 ]
 
+[project.scripts]
+research-assistant-ingest = "research_assistant_api.ingestion.cli:main"
+
 [project.optional-dependencies]
 dev = [
     "httpx>=0.28,<1.0",
