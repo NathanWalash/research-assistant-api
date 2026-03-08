@@ -6,12 +6,14 @@ The current MVP focuses on semantic discovery, metadata analytics, and research 
 
 ## Current Status
 
-The repository currently contains the raw Leeds articles CSV and the initial application scaffold. The first development batch focuses on:
+The repository currently contains the raw Leeds articles CSV, the application foundation, and the first discovery API endpoints. The implemented batches currently cover:
 
 - FastAPI service setup
-- database foundation
+- database foundation and Alembic migrations
 - initial relational schema
-- smoke tests
+- CSV ingestion for papers, topics, authors, institutions, and optional citation edges
+- discovery endpoints for papers, authors, and topics
+- smoke and endpoint tests
 
 ## Local Development
 
@@ -37,6 +39,7 @@ The current tests cover:
 - SQLAlchemy session connectivity
 - Alembic migration wiring against SQLite
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
+- discovery API read endpoints for papers, authors, and topics
 
 ## Continuous Integration
 
@@ -97,6 +100,15 @@ Those graph features remain possible in the architecture, but only after ingesti
 - semantic similarity and recommendations
 - project, reading list, and annotation workflows
 - research analytics endpoints
+
+## Implemented Discovery Endpoints
+
+- `GET /papers/search`
+- `GET /papers/{id}`
+- `GET /authors/{id}`
+- `GET /authors/{id}/papers`
+- `GET /topics`
+- `GET /topics/{id}/papers`
 
 ## Future Extension
 
