@@ -34,6 +34,7 @@ The current tests cover:
 - health endpoint response
 - SQLAlchemy session connectivity
 - Alembic migration wiring against SQLite
+- CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 
 ## Continuous Integration
 
@@ -43,6 +44,30 @@ The workflow currently runs:
 
 - the Python smoke test suite on every push and pull request
 - an Alembic migration check against PostgreSQL using a `pgvector` service container
+
+## Data Ingestion
+
+Import the main Leeds/OpenAlex-derived CSV with:
+
+```bash
+research-assistant-ingest
+```
+
+Useful options:
+
+- `research-assistant-ingest --limit 100`
+- `research-assistant-ingest --csv-path path/to/data.csv`
+- `research-assistant-ingest --citation-csv-path path/to/citation_edges.csv`
+
+The current Leeds CSV includes:
+
+- papers
+- topics
+- authors
+- institutions
+- citation counts
+
+It does not include citation edge pairs in the main file, so citation neighbourhood data requires a supplementary CSV with `citing_paper_id` and `cited_paper_id` columns.
 
 ## Planned Capabilities
 
