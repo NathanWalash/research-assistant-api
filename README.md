@@ -14,6 +14,8 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery endpoints for papers, authors, and topics
 - analytics endpoints for top papers, topic distribution, publication trends, and co-authorship pairs
+- JWT-based authentication endpoints
+- protected project CRUD endpoints
 - smoke and endpoint tests
 
 ## Local Development
@@ -52,6 +54,8 @@ The current tests cover:
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery API read endpoints for papers, authors, and topics
 - analytics API read endpoints
+- authentication endpoints and bearer-token access control
+- protected project CRUD workflows
 
 ## Continuous Integration
 
@@ -121,8 +125,28 @@ Those graph features remain possible in the architecture, but only after ingesti
 
 - paper discovery and metadata lookup
 - corpus analytics
-- project, reading list, and annotation workflows
+- JWT authentication
+- project CRUD workflows
+- reading list and annotation workflows still to be implemented
 - semantic similarity and recommendations as the next planned extension
+
+## Implemented Authentication Endpoints
+
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+
+Authentication uses bearer tokens signed with the JWT settings defined in `.env.example`.
+
+## Implemented Project Endpoints
+
+- `POST /projects`
+- `GET /projects`
+- `GET /projects/{id}`
+- `PATCH /projects/{id}`
+- `DELETE /projects/{id}`
+
+Project routes are scoped to the authenticated user, so users can only see and modify their own projects.
 
 ## Implemented Discovery Endpoints
 
