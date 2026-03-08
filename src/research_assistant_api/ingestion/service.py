@@ -136,13 +136,17 @@ def parse_dataset_row(row: Mapping[str, str]) -> ParsedDatasetRow:
         "publication_date": parse_date(row.get("publication_date")),
         "citation_count": parse_int(row.get("cited_by_count")),
         "doi": normalize_optional_text(row.get("doi")),
-        "journal": normalize_optional_text(row.get("primary_location.source.display_name")),
+        "journal": normalize_optional_text(
+            row.get("primary_location.source.display_name")
+        ),
         "language": normalize_optional_text(row.get("language")),
         "work_type": normalize_optional_text(row.get("type")),
         "topic_id": topic_id,
     }
 
-    institution_names = split_pipe_values(row.get("authorships.institutions.display_name"))
+    institution_names = split_pipe_values(
+        row.get("authorships.institutions.display_name")
+    )
     institution_ids = split_pipe_values(row.get("authorships.institutions.id"))
     countries = split_pipe_values(row.get("authorships.countries"))
     unique_country = None
@@ -152,7 +156,9 @@ def parse_dataset_row(row: Mapping[str, str]) -> ParsedDatasetRow:
             unique_country = distinct_countries[0]
 
     institutions_by_id: dict[str, dict[str, Any]] = {}
-    for institution_id, institution_name in zip(institution_ids, institution_names, strict=False):
+    for institution_id, institution_name in zip(
+        institution_ids, institution_names, strict=False
+    ):
         if not institution_id or not institution_name:
             continue
         institutions_by_id[institution_id] = {
@@ -261,7 +267,9 @@ class CsvIngestionService:
                     author,
                 )
             for authorship in parsed.authorships:
-                authorship_batch[(authorship["paper_id"], authorship["author_id"])] = authorship
+                authorship_batch[(authorship["paper_id"], authorship["author_id"])] = (
+                    authorship
+                )
 
             if summary.source_rows_processed % config.batch_size == 0:
                 self._flush_batch(
@@ -415,7 +423,9 @@ class CsvIngestionService:
                             paper_table.c.publication_date,
                         ),
                         "citation_count": paper_insert.excluded.citation_count,
-                        "doi": func.coalesce(paper_insert.excluded.doi, paper_table.c.doi),
+                        "doi": func.coalesce(
+                            paper_insert.excluded.doi, paper_table.c.doi
+                        ),
                         "journal": func.coalesce(
                             paper_insert.excluded.journal,
                             paper_table.c.journal,

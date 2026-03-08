@@ -1,7 +1,9 @@
 from research_assistant_api.ingestion.service import parse_dataset_row
 
 
-def test_parse_dataset_row_assigns_single_institution_and_skips_incomplete_authors() -> None:
+def test_parse_dataset_row_assigns_single_institution_and_skips_incomplete_authors() -> (
+    None
+):
     parsed = parse_dataset_row(
         {
             "id": "https://openalex.org/W100",
@@ -55,7 +57,9 @@ def test_parse_dataset_row_assigns_single_institution_and_skips_incomplete_autho
     ]
 
 
-def test_parse_dataset_row_leaves_author_institution_unset_for_multi_institution_rows() -> None:
+def test_parse_dataset_row_leaves_author_institution_unset_for_multi_institution_rows() -> (
+    None
+):
     parsed = parse_dataset_row(
         {
             "id": "https://openalex.org/W101",

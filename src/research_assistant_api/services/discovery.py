@@ -1,7 +1,13 @@
 from research_assistant_api.models import Paper, PaperAuthor
-from research_assistant_api.repositories.author_repository import AuthorRecord, AuthorRepository
+from research_assistant_api.repositories.author_repository import (
+    AuthorRecord,
+    AuthorRepository,
+)
 from research_assistant_api.repositories.paper_repository import PaperRepository
-from research_assistant_api.repositories.topic_repository import TopicRecord, TopicRepository
+from research_assistant_api.repositories.topic_repository import (
+    TopicRecord,
+    TopicRepository,
+)
 from research_assistant_api.schemas.discovery import (
     AuthorDetail,
     InstitutionSummary,
@@ -134,7 +140,9 @@ class AuthorService:
             raise DiscoveryNotFoundError("author", author_id)
         return _build_author_detail(author_record)
 
-    def list_author_papers(self, author_id: str, *, limit: int, offset: int) -> list[PaperSummary]:
+    def list_author_papers(
+        self, author_id: str, *, limit: int, offset: int
+    ) -> list[PaperSummary]:
         if self.repository.get_by_id(author_id) is None:
             raise DiscoveryNotFoundError("author", author_id)
         papers = self.repository.list_papers(author_id, limit=limit, offset=offset)
@@ -149,7 +157,9 @@ class TopicService:
         topic_records = self.repository.list_topics(limit=limit, offset=offset)
         return [_build_topic_list_item(record) for record in topic_records]
 
-    def list_topic_papers(self, topic_id: str, *, limit: int, offset: int) -> list[PaperSummary]:
+    def list_topic_papers(
+        self, topic_id: str, *, limit: int, offset: int
+    ) -> list[PaperSummary]:
         if not self.repository.exists(topic_id):
             raise DiscoveryNotFoundError("topic", topic_id)
         papers = self.repository.list_papers(topic_id, limit=limit, offset=offset)

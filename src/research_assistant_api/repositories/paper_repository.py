@@ -35,7 +35,9 @@ class PaperRepository:
 
         if topic:
             normalized_topic = topic.strip()
-            statement = statement.join(Topic, Paper.topic_id == Topic.id, isouter=True).where(
+            statement = statement.join(
+                Topic, Paper.topic_id == Topic.id, isouter=True
+            ).where(
                 or_(
                     Paper.topic_id == normalized_topic,
                     func.lower(Topic.name) == normalized_topic.lower(),

@@ -35,7 +35,11 @@ class AuthorRepository:
             .join(PaperAuthor, PaperAuthor.paper_id == Paper.id)
             .options(selectinload(Paper.topic))
             .where(PaperAuthor.author_id == author_id)
-            .order_by(Paper.publication_year.desc(), Paper.citation_count.desc(), Paper.title.asc())
+            .order_by(
+                Paper.publication_year.desc(),
+                Paper.citation_count.desc(),
+                Paper.title.asc(),
+            )
             .offset(offset)
             .limit(limit)
         )

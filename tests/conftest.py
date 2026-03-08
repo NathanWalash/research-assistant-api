@@ -20,8 +20,7 @@ def reset_app_state() -> None:
 def sqlite_database_url(monkeypatch: pytest.MonkeyPatch) -> str:
     database_name = f"research_assistant_test_{uuid4().hex}"
     database_url = (
-        "sqlite+pysqlite:///file:"
-        f"{database_name}?mode=memory&cache=shared&uri=true"
+        f"sqlite+pysqlite:///file:{database_name}?mode=memory&cache=shared&uri=true"
     )
     keepalive_engine = create_engine(
         database_url,

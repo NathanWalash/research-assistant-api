@@ -1,9 +1,19 @@
+from __future__ import annotations
+
 from datetime import date
+from typing import TYPE_CHECKING
 
 from sqlalchemy import ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from research_assistant_api.db.base import Base
+
+if TYPE_CHECKING:
+    from research_assistant_api.models.annotation import Annotation
+    from research_assistant_api.models.author import PaperAuthor
+    from research_assistant_api.models.citation import Citation
+    from research_assistant_api.models.reading_list import ReadingListItem
+    from research_assistant_api.models.topic import Topic
 
 
 class Paper(Base):
@@ -25,26 +35,26 @@ class Paper(Base):
         index=True,
     )
 
-    topic: Mapped["Topic | None"] = relationship(back_populates="papers")
-    authorships: Mapped[list["PaperAuthor"]] = relationship(
+    topic: Mapped[Topic | None] = relationship(back_populates="papers")
+    authorships: Mapped[list[PaperAuthor]] = relationship(
         back_populates="paper",
         cascade="all, delete-orphan",
     )
-    outgoing_citations: Mapped[list["Citation"]] = relationship(
+    outgoing_citations: Mapped[list[Citation]] = relationship(
         back_populates="citing_paper",
         cascade="all, delete-orphan",
         foreign_keys="Citation.citing_paper_id",
     )
-    incoming_citations: Mapped[list["Citation"]] = relationship(
+    incoming_citations: Mapped[list[Citation]] = relationship(
         back_populates="cited_paper",
         cascade="all, delete-orphan",
         foreign_keys="Citation.cited_paper_id",
     )
-    reading_list_items: Mapped[list["ReadingListItem"]] = relationship(
+    reading_list_items: Mapped[list[ReadingListItem]] = relationship(
         back_populates="paper",
         cascade="all, delete-orphan",
     )
-    annotations: Mapped[list["Annotation"]] = relationship(
+    annotations: Mapped[list[Annotation]] = relationship(
         back_populates="paper",
         cascade="all, delete-orphan",
     )

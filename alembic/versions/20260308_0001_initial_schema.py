@@ -25,7 +25,9 @@ def upgrade() -> None:
         sa.Column("country", sa.String(length=128), nullable=True),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_institutions")),
     )
-    op.create_index(op.f("ix_institutions_name"), "institutions", ["name"], unique=False)
+    op.create_index(
+        op.f("ix_institutions_name"), "institutions", ["name"], unique=False
+    )
 
     op.create_table(
         "topics",
@@ -66,7 +68,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_authors")),
         sa.UniqueConstraint("orcid", name=op.f("uq_authors_orcid")),
     )
-    op.create_index(op.f("ix_authors_institution_id"), "authors", ["institution_id"], unique=False)
+    op.create_index(
+        op.f("ix_authors_institution_id"), "authors", ["institution_id"], unique=False
+    )
     op.create_index(op.f("ix_authors_name"), "authors", ["name"], unique=False)
 
     op.create_table(
@@ -90,7 +94,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_papers")),
         sa.UniqueConstraint("doi", name=op.f("uq_papers_doi")),
     )
-    op.create_index(op.f("ix_papers_publication_year"), "papers", ["publication_year"], unique=False)
+    op.create_index(
+        op.f("ix_papers_publication_year"), "papers", ["publication_year"], unique=False
+    )
     op.create_index(op.f("ix_papers_title"), "papers", ["title"], unique=False)
     op.create_index(op.f("ix_papers_topic_id"), "papers", ["topic_id"], unique=False)
 
@@ -179,8 +185,12 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_annotations")),
     )
-    op.create_index(op.f("ix_annotations_paper_id"), "annotations", ["paper_id"], unique=False)
-    op.create_index(op.f("ix_annotations_user_id"), "annotations", ["user_id"], unique=False)
+    op.create_index(
+        op.f("ix_annotations_paper_id"), "annotations", ["paper_id"], unique=False
+    )
+    op.create_index(
+        op.f("ix_annotations_user_id"), "annotations", ["user_id"], unique=False
+    )
 
     op.create_table(
         "reading_list_items",
@@ -206,7 +216,9 @@ def upgrade() -> None:
             name=op.f("fk_reading_list_items_project_id_projects"),
         ),
         sa.PrimaryKeyConstraint("id", name=op.f("pk_reading_list_items")),
-        sa.UniqueConstraint("project_id", "paper_id", name=op.f("uq_reading_list_items_project_id")),
+        sa.UniqueConstraint(
+            "project_id", "paper_id", name=op.f("uq_reading_list_items_project_id")
+        ),
     )
     op.create_index(
         op.f("ix_reading_list_items_paper_id"),
@@ -223,8 +235,12 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index(op.f("ix_reading_list_items_project_id"), table_name="reading_list_items")
-    op.drop_index(op.f("ix_reading_list_items_paper_id"), table_name="reading_list_items")
+    op.drop_index(
+        op.f("ix_reading_list_items_project_id"), table_name="reading_list_items"
+    )
+    op.drop_index(
+        op.f("ix_reading_list_items_paper_id"), table_name="reading_list_items"
+    )
     op.drop_table("reading_list_items")
 
     op.drop_index(op.f("ix_annotations_user_id"), table_name="annotations")

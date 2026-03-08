@@ -32,7 +32,9 @@ def test_csv_ingestion_imports_topics_and_papers(sqlite_database_url: str) -> No
 
     with session_factory() as session:
         summary = CsvIngestionService(session).ingest(config)
-        papers = session.scalars(select(Paper).order_by(Paper.publication_year.desc())).all()
+        papers = session.scalars(
+            select(Paper).order_by(Paper.publication_year.desc())
+        ).all()
         topics = session.scalars(select(Topic).order_by(Topic.name)).all()
 
     assert summary.source_rows_processed == 2
@@ -95,9 +97,13 @@ def test_csv_ingestion_imports_authors_institutions_and_authorships(
     with session_factory() as session:
         summary = CsvIngestionService(session).ingest(config)
         authors = session.scalars(select(Author).order_by(Author.name)).all()
-        institutions = session.scalars(select(Institution).order_by(Institution.name)).all()
+        institutions = session.scalars(
+            select(Institution).order_by(Institution.name)
+        ).all()
         authorships = session.scalars(
-            select(PaperAuthor).order_by(PaperAuthor.paper_id, PaperAuthor.author_position)
+            select(PaperAuthor).order_by(
+                PaperAuthor.paper_id, PaperAuthor.author_position
+            )
         ).all()
 
     assert summary.authors_upserted == 3
@@ -148,9 +154,9 @@ def test_csv_ingestion_imports_optional_citation_edges(
 
     assert summary.citation_import_skipped is False
     assert summary.citations_upserted == 1
-    assert [(citation.citing_paper_id, citation.cited_paper_id) for citation in citations] == [
-        ("https://openalex.org/W2", "https://openalex.org/W1")
-    ]
+    assert [
+        (citation.citing_paper_id, citation.cited_paper_id) for citation in citations
+    ] == [("https://openalex.org/W2", "https://openalex.org/W1")]
 
 
 def test_csv_ingestion_preserves_richer_duplicate_metadata(
@@ -168,8 +174,12 @@ def test_csv_ingestion_preserves_richer_duplicate_metadata(
 
     with session_factory() as session:
         summary = CsvIngestionService(session).ingest(config)
-        paper = session.scalar(select(Paper).where(Paper.id == "https://openalex.org/W9"))
-        author = session.scalar(select(Author).where(Author.id == "https://openalex.org/A9"))
+        paper = session.scalar(
+            select(Paper).where(Paper.id == "https://openalex.org/W9")
+        )
+        author = session.scalar(
+            select(Author).where(Author.id == "https://openalex.org/A9")
+        )
         topic = session.scalar(select(Topic).where(Topic.id == "topic:data-science"))
 
         paper_count = session.scalar(select(func.count()).select_from(Paper))

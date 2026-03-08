@@ -1,7 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import ForeignKey, String, Text, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from research_assistant_api.db.base import Base, CreatedAtMixin, UUIDPrimaryKeyMixin
+
+if TYPE_CHECKING:
+    from research_assistant_api.models.paper import Paper
+    from research_assistant_api.models.project import Project
 
 
 class ReadingListItem(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
@@ -13,9 +21,11 @@ class ReadingListItem(UUIDPrimaryKeyMixin, CreatedAtMixin, Base):
         nullable=False,
         index=True,
     )
-    paper_id: Mapped[str] = mapped_column(ForeignKey("papers.id"), nullable=False, index=True)
+    paper_id: Mapped[str] = mapped_column(
+        ForeignKey("papers.id"), nullable=False, index=True
+    )
     priority: Mapped[str] = mapped_column(String(32), nullable=False, default="medium")
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    project: Mapped["Project"] = relationship(back_populates="reading_list_items")
-    paper: Mapped["Paper"] = relationship(back_populates="reading_list_items")
+    project: Mapped[Project] = relationship(back_populates="reading_list_items")
+    paper: Mapped[Paper] = relationship(back_populates="reading_list_items")

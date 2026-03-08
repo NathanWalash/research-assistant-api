@@ -25,7 +25,10 @@ class TopicRepository:
             .offset(offset)
             .limit(limit)
         )
-        return [TopicRecord(topic=row[0], paper_count=row[1]) for row in self.session.execute(statement)]
+        return [
+            TopicRecord(topic=row[0], paper_count=row[1])
+            for row in self.session.execute(statement)
+        ]
 
     def exists(self, topic_id: str) -> bool:
         statement = select(Topic.id).where(Topic.id == topic_id)
@@ -36,7 +39,11 @@ class TopicRepository:
             select(Paper)
             .options(selectinload(Paper.topic))
             .where(Paper.topic_id == topic_id)
-            .order_by(Paper.publication_year.desc(), Paper.citation_count.desc(), Paper.title.asc())
+            .order_by(
+                Paper.publication_year.desc(),
+                Paper.citation_count.desc(),
+                Paper.title.asc(),
+            )
             .offset(offset)
             .limit(limit)
         )

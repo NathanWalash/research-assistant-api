@@ -1,7 +1,14 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from research_assistant_api.db.base import Base
+
+if TYPE_CHECKING:
+    from research_assistant_api.models.paper import Paper
 
 
 class Institution(Base):
@@ -39,7 +46,9 @@ class PaperAuthor(Base):
     paper_id: Mapped[str] = mapped_column(ForeignKey("papers.id"), primary_key=True)
     author_id: Mapped[str] = mapped_column(ForeignKey("authors.id"), primary_key=True)
     author_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    is_corresponding: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_corresponding: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
 
-    paper: Mapped["Paper"] = relationship(back_populates="authorships")
+    paper: Mapped[Paper] = relationship(back_populates="authorships")
     author: Mapped[Author] = relationship(back_populates="paper_authorships")
