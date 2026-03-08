@@ -7,7 +7,7 @@ from research_assistant_api.db.base import Base
 from research_assistant_api.db.session import get_engine, get_session_factory
 from research_assistant_api.ingestion.config import IngestionConfig
 from research_assistant_api.ingestion.service import CsvIngestionService
-from research_assistant_api.models import Paper, Topic
+from research_assistant_api.models import Author, Institution, Paper, PaperAuthor, Topic
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
 
@@ -69,3 +69,53 @@ def test_csv_ingestion_is_idempotent_for_papers_and_topics(
 
     assert paper_count == 2
     assert topic_count == 2
+
+
+def test_csv_ingestion_imports_authors_institutions_and_authorships(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_openalex_leeds.csv",
+        citation_csv_path=None,
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        authors = session.scalars(select(Author).order_by(Author.name)).all()
+        institutions = session.scalars(select(Institution).order_by(Institution.name)).all()
+        authorships = session.scalars(
+            select(PaperAuthor).order_by(PaperAuthor.paper_id, PaperAuthor.author_position)
+        ).all()
+
+    assert summary.authors_upserted == 3
+    assert summary.institutions_upserted == 2
+    assert summary.authorships_upserted == 4
+
+    assert [author.id for author in authors] == [
+        "https://openalex.org/A1",
+        "https://openalex.org/A2",
+        "https://openalex.org/A3",
+    ]
+    assert authors[0].institution_id == "https://openalex.org/I1"
+    assert authors[2].institution_id is None
+
+    assert [institution.id for institution in institutions] == [
+        "https://openalex.org/I2",
+        "https://openalex.org/I1",
+    ]
+    assert institutions[1].country == "GB"
+    assert institutions[0].country is None
+
+    assert [(item.paper_id, item.author_id) for item in authorships] == [
+        ("https://openalex.org/W1", "https://openalex.org/A1"),
+        ("https://openalex.org/W1", "https://openalex.org/A2"),
+        ("https://openalex.org/W2", "https://openalex.org/A1"),
+        ("https://openalex.org/W2", "https://openalex.org/A3"),
+    ]
+    assert authorships[0].is_corresponding is True
+    assert authorships[-1].author_position == 2
