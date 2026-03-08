@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -14,6 +15,9 @@ class Settings(BaseSettings):
         "postgresql+psycopg://research_user:research_password@localhost:5433/"
         "research_assistant"
     )
+    dataset_csv_path: Path = Path("UniOfLeedsArticles2018_to_Present.csv")
+    citation_edges_csv_path: Path | None = None
+    ingestion_batch_size: int = 500
 
     model_config = SettingsConfigDict(
         env_file=".env",
