@@ -151,3 +151,63 @@ def test_csv_ingestion_imports_optional_citation_edges(
     assert [(citation.citing_paper_id, citation.cited_paper_id) for citation in citations] == [
         ("https://openalex.org/W2", "https://openalex.org/W1")
     ]
+
+
+def test_csv_ingestion_preserves_richer_duplicate_metadata(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_duplicate_metadata_rows.csv",
+        citation_csv_path=None,
+        batch_size=50,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        paper = session.scalar(select(Paper).where(Paper.id == "https://openalex.org/W9"))
+        author = session.scalar(select(Author).where(Author.id == "https://openalex.org/A9"))
+        topic = session.scalar(select(Topic).where(Topic.id == "topic:data-science"))
+
+        paper_count = session.scalar(select(func.count()).select_from(Paper))
+        author_count = session.scalar(select(func.count()).select_from(Author))
+        topic_count = session.scalar(select(func.count()).select_from(Topic))
+
+    assert summary.source_rows_processed == 2
+    assert summary.papers_upserted == 1
+    assert summary.authors_upserted == 1
+    assert paper_count == 1
+    assert author_count == 1
+    assert topic_count == 1
+    assert paper is not None
+    assert author is not None
+    assert topic is not None
+    assert paper.abstract == "Rich abstract"
+    assert paper.doi == "https://doi.org/10.1234/dup"
+    assert paper.topic_id == "topic:data-science"
+    assert author.orcid == "https://orcid.org/0000-0000-0000-0009"
+
+
+def test_csv_ingestion_skips_invalid_citation_edge_rows(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_openalex_leeds.csv",
+        citation_csv_path=FIXTURES_DIR / "sample_citation_edges_invalid.csv",
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        citation_count = session.scalar(select(func.count()).select_from(Citation))
+
+    assert summary.citation_import_skipped is False
+    assert summary.citations_upserted == 1
+    assert citation_count == 1
