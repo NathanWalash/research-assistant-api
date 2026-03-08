@@ -1,0 +1,15 @@
+services:
+  db:
+    image: pgvector/pgvector:pg17
+    container_name: research-assistant-db
+    environment:
+      POSTGRES_DB: research_assistant
+      POSTGRES_USER: research_user
+      POSTGRES_PASSWORD: research_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     environment: Literal["development", "test", "production"] = "development"
     debug: bool = False
     api_prefix: str = ""
+    database_url: str = (
+        "postgresql+psycopg://research_user:research_password@localhost:5432/"
+        "research_assistant"
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",
