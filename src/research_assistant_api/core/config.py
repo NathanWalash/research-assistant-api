@@ -15,6 +15,9 @@ class Settings(BaseSettings):
         "postgresql+psycopg://research_user:research_password@localhost:5433/"
         "research_assistant"
     )
+    jwt_secret_key: str = "change-this-development-secret"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60
     dataset_csv_path: Path = Path("UniOfLeedsArticles2018_to_Present.csv")
     citation_edges_csv_path: Path | None = None
     ingestion_batch_size: int = 500
