@@ -10,7 +10,10 @@ from research_assistant_api.core.config import get_settings
 
 def _connect_args(database_url: str) -> dict[str, bool]:
     if database_url.startswith("sqlite"):
-        return {"check_same_thread": False}
+        connect_args = {"check_same_thread": False}
+        if "uri=true" in database_url:
+            connect_args["uri"] = True
+        return connect_args
     return {}
 
 

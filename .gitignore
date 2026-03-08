@@ -1,5 +1,8 @@
 .env
 .pytest_cache/
+.pytest_tmp/
+.pytest_artifacts/
+.test_artifacts/
 .ruff_cache/
 .venv/
 __pycache__/
