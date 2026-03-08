@@ -20,17 +20,27 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 
 1. Copy `.env.example` to `.env`.
 2. Start PostgreSQL with `docker compose up -d db`.
-3. Install dependencies with `python -m pip install -e .[dev]`.
-4. Run the API with `uvicorn research_assistant_api.main:app --reload`.
+3. Create a virtual environment with `python -m venv .venv`.
+4. Activate it with `.\.venv\Scripts\Activate.ps1`.
+5. Install dependencies with `python -m pip install -r requirements-dev.txt`.
+6. Run the API with `uvicorn research_assistant_api.main:app --reload`.
 
 The default database configuration uses PostgreSQL with the `pgvector` image so vector support can be added later without replacing the local database container. The container is published on `localhost:5433` to avoid clashing with an existing PostgreSQL service on the default `5432` port.
+
+The repository now includes:
+
+- `requirements.txt` for pinned runtime dependencies
+- `requirements-dev.txt` for local development tooling and tests
+- `pyproject.toml` as the main package metadata source
+
+The local `.venv` is a development convenience only. It is ignored by git and should not be committed.
 
 ## Testing
 
 Run the smoke test suite with:
 
 ```bash
-python -m pytest
+.\.venv\Scripts\python.exe -m pytest
 ```
 
 The current tests cover:
@@ -51,6 +61,17 @@ The workflow currently runs:
 
 - the Python smoke test suite on every push and pull request
 - an Alembic migration check against PostgreSQL using a `pgvector` service container
+
+## Virtualenv And Docker
+
+The local `.venv` is for development on your machine. Docker does not use your host virtual environment.
+
+In the current repo:
+
+- `docker compose` is only used to run PostgreSQL locally
+- the API itself runs from your local Python environment
+
+If we add an application Dockerfile later, the container will install dependencies from `requirements.txt` or `pyproject.toml` inside the image. Your local `.venv` will not be copied into or reused by the container.
 
 ## Data Ingestion
 
