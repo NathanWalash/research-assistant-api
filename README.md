@@ -2,6 +2,8 @@
 
 Research Assistant API is a FastAPI service for discovering and organising scholarly research data derived from OpenAlex.
 
+The current MVP focuses on semantic discovery, metadata analytics, and research organisation workflows for the Leeds article subset.
+
 ## Current Status
 
 The repository currently contains the raw Leeds articles CSV and the initial application scaffold. The first development batch focuses on:
@@ -69,10 +71,34 @@ The current Leeds CSV includes:
 
 It does not include citation edge pairs in the main file, so citation neighbourhood data requires a supplementary CSV with `citing_paper_id` and `cited_paper_id` columns.
 
-## Planned Capabilities
+## Dataset Limitation
+
+The Leeds dataset currently loaded into the project contains aggregate citation counts such as `cited_by_count`, but not explicit work-to-work citation edges.
+
+That means the current system can support:
+
+- paper search and metadata lookup
+- topic, author, and institution analytics
+- popularity and influence ranking using citation counts
+- semantic similarity and recommendation features
+- user workflows such as projects, reading lists, and notes
+
+It does not currently support true citation-graph operations such as:
+
+- citation neighbourhood traversal
+- shortest citation path discovery
+- bridge-paper discovery through citation edges
+
+Those graph features remain possible in the architecture, but only after ingesting a second source that contains explicit citation edge pairs.
+
+## Current Scope
 
 - paper discovery and metadata lookup
-- citation graph exploration
 - semantic similarity and recommendations
 - project, reading list, and annotation workflows
 - research analytics endpoints
+
+## Future Extension
+
+- citation graph exploration via supplementary citation-edge ingestion
+- shortest citation path and neighbourhood endpoints once citation edges are available
