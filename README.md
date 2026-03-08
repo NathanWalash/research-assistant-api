@@ -18,7 +18,7 @@ The repository currently contains the raw Leeds articles CSV and the initial app
 3. Install dependencies with `python -m pip install -e .[dev]`.
 4. Run the API with `uvicorn research_assistant_api.main:app --reload`.
 
-The default database configuration uses PostgreSQL with the `pgvector` image so vector support can be added later without replacing the local database container.
+The default database configuration uses PostgreSQL with the `pgvector` image so vector support can be added later without replacing the local database container. The container is published on `localhost:5433` to avoid clashing with an existing PostgreSQL service on the default `5432` port.
 
 ## Testing
 

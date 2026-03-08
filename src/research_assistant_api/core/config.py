@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     debug: bool = False
     api_prefix: str = ""
     database_url: str = (
-        "postgresql+psycopg://research_user:research_password@localhost:5432/"
+        "postgresql+psycopg://research_user:research_password@localhost:5433/"
         "research_assistant"
     )
 
