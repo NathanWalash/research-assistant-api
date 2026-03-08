@@ -20,6 +20,21 @@ The repository currently contains the raw Leeds articles CSV and the initial app
 
 The default database configuration uses PostgreSQL with the `pgvector` image so vector support can be added later without replacing the local database container.
 
+## Testing
+
+Run the smoke test suite with:
+
+```bash
+python -m pytest
+```
+
+The current tests cover:
+
+- application startup
+- health endpoint response
+- SQLAlchemy session connectivity
+- Alembic migration wiring against SQLite
+
 ## Planned Capabilities
 
 - paper discovery and metadata lookup
