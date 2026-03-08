@@ -35,6 +35,15 @@ The current tests cover:
 - SQLAlchemy session connectivity
 - Alembic migration wiring against SQLite
 
+## Continuous Integration
+
+GitHub Actions is configured in `.github/workflows/ci.yml`.
+
+The workflow currently runs:
+
+- the Python smoke test suite on every push and pull request
+- an Alembic migration check against PostgreSQL using a `pgvector` service container
+
 ## Planned Capabilities
 
 - paper discovery and metadata lookup

@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Run Python smoke tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Run pytest
+        run: python -m pytest
+
+  postgres-migration:
+    name: Verify PostgreSQL migration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: research_assistant
+          POSTGRES_USER: research_user
+          POSTGRES_PASSWORD: research_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U research_user -d research_assistant"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      RESEARCH_API_DATABASE_URL: postgresql+psycopg://research_user:research_password@localhost:5432/research_assistant
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev]"
+
+      - name: Apply Alembic migrations
+        run: alembic upgrade head
+
+      - name: Verify schema tables
+        run: |
+          python - <<'PY'
+          from sqlalchemy import inspect
+          from research_assistant_api.db.session import get_engine, reset_database_state
+
+          reset_database_state()
+          tables = set(inspect(get_engine()).get_table_names())
+          expected = {
+              "alembic_version",
+              "annotations",
+              "authors",
+              "citations",
+              "institutions",
+              "paper_authors",
+              "papers",
+              "projects",
+              "reading_list_items",
+              "topics",
+              "users",
+          }
+          missing = expected - tables
+          if missing:
+              raise SystemExit(f"Missing tables: {sorted(missing)}")
+          print("PostgreSQL schema verified")
+          PY
