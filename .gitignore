@@ -5,6 +5,7 @@
 .test_artifacts/
 .ruff_cache/
 .venv/
+.tmp/
 __pycache__/
 *.py[cod]
 *.sqlite3
