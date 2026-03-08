@@ -21,6 +21,11 @@ from research_assistant_api.schemas.discovery import (
     TopicListItem,
     TopicSummary,
 )
+from research_assistant_api.schemas.projects import (
+    ProjectCreateRequest,
+    ProjectResponse,
+    ProjectUpdateRequest,
+)
 
 __all__ = [
     "AnalyticsPaperItem",
@@ -33,6 +38,9 @@ __all__ = [
     "PaperDetail",
     "PaperSummary",
     "PublicationTrendItem",
+    "ProjectCreateRequest",
+    "ProjectResponse",
+    "ProjectUpdateRequest",
     "TopicAnalyticsItem",
     "TopicListItem",
     "TopicSummary",
