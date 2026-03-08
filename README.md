@@ -13,6 +13,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - initial relational schema
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery endpoints for papers, authors, and topics
+- analytics endpoints for top papers, topic distribution, publication trends, and co-authorship pairs
 - smoke and endpoint tests
 
 ## Local Development
@@ -40,6 +41,7 @@ The current tests cover:
 - Alembic migration wiring against SQLite
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery API read endpoints for papers, authors, and topics
+- analytics API read endpoints
 
 ## Continuous Integration
 
@@ -97,9 +99,9 @@ Those graph features remain possible in the architecture, but only after ingesti
 ## Current Scope
 
 - paper discovery and metadata lookup
-- semantic similarity and recommendations
+- corpus analytics
 - project, reading list, and annotation workflows
-- research analytics endpoints
+- semantic similarity and recommendations as the next planned extension
 
 ## Implemented Discovery Endpoints
 
@@ -110,7 +112,18 @@ Those graph features remain possible in the architecture, but only after ingesti
 - `GET /topics`
 - `GET /topics/{id}/papers`
 
+## Implemented Analytics Endpoints
+
+- `GET /analytics/top-papers`
+- `GET /analytics/topics`
+- `GET /analytics/trends`
+- `GET /analytics/collaborations`
+
+The collaboration endpoint currently exposes co-authorship pairs because that relationship is directly supported by the ingested authorship data. Institution-level collaboration graphs would need richer affiliation-per-authorship modelling.
+
 ## Future Extension
 
+- embedding generation and similar-paper retrieval
+- hybrid recommendations once the embedding stack is in place
 - citation graph exploration via supplementary citation-edge ingestion
 - shortest citation path and neighbourhood endpoints once citation edges are available
