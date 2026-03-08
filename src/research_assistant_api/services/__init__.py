@@ -12,6 +12,7 @@ from research_assistant_api.services.discovery import (
     PaperService,
     TopicService,
 )
+from research_assistant_api.services.projects import ProjectNotFoundError, ProjectService
 
 __all__ = [
     "AnalyticsService",
@@ -20,6 +21,8 @@ __all__ = [
     "AuthorService",
     "DiscoveryNotFoundError",
     "PaperService",
+    "ProjectNotFoundError",
+    "ProjectService",
     "TopicService",
     "UserAlreadyExistsError",
 ]
