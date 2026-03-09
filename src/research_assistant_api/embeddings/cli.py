@@ -1,9 +1,12 @@
 import argparse
 import json
+from collections.abc import Sequence
+from dataclasses import asdict
 
 from research_assistant_api.core.config import get_settings
 from research_assistant_api.db.session import get_session_factory
 from research_assistant_api.embeddings import (
+    EmbeddingGenerationSummary,
     PaperEmbeddingService,
     SentenceTransformerEmbedder,
 )
@@ -29,9 +32,9 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> None:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(argv)
     settings = get_settings()
 
     embedder = SentenceTransformerEmbedder(
@@ -51,4 +54,9 @@ def main() -> None:
             force=args.force,
         )
 
-    print(json.dumps(summary.__dict__, indent=2))
+    print(json.dumps(asdict(summary), indent=2, sort_keys=True))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
