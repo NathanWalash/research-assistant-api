@@ -24,6 +24,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - citation neighbourhood and directed citation path endpoints
 - similar papers endpoint
 - project recommendation endpoint
+- configurable recommendation scoring modes
 - container deployment files for the API runtime
 - smoke and endpoint tests
 
@@ -262,7 +263,7 @@ For the report and presentation, the honest framing is:
 - citation counts are used for influence-style analytics
 - citation traversal is implemented only after supplementing the Leeds metadata export with explicit Leeds-to-Leeds citation edges
 - the project now contains both a co-authorship graph and a Leeds citation subgraph
-- the implemented recommendation feature uses embeddings plus reading-list context, not citation proximity
+- the implemented recommendation feature supports semantic-only, citation-only, and hybrid project scoring
 
 ## Current Scope
 
@@ -275,7 +276,7 @@ For the report and presentation, the honest framing is:
 - project CRUD workflows
 - reading list and annotation workflows
 - semantic similarity via stored embeddings
-- project recommendations via reading-list embedding context
+- project recommendations via configurable semantic, citation, or hybrid scoring
 
 ## Implemented Authentication Endpoints
 
@@ -311,6 +312,20 @@ Default hybrid scoring uses:
 - `0.3` citation signal within the Leeds citation subgraph
 
 The response now includes the total recommendation score plus the semantic and citation component scores, together with the applied weights.
+
+## Demo Flow
+
+For a concise coursework demo, the strongest sequence is:
+
+1. search the Leeds corpus with `GET /papers/search`
+2. open a paper record with `GET /papers/{id}`
+3. show semantic retrieval with `GET /papers/{id}/similar`
+4. show Leeds citation-neighbourhood lookup with `GET /papers/{id}/citations`
+5. register and log in
+6. create a project
+7. add papers to the reading list
+8. request project recommendations
+9. switch between `mode=semantic`, `mode=citation`, and `mode=hybrid` to explain the ranking trade-off
 
 ## Implemented Reading List Endpoints
 
@@ -352,4 +367,6 @@ The collaboration endpoint exposes co-authorship edges between authors. This is 
 
 - citation graph exploration beyond the Leeds subset
 - bidirectional or undirected citation path options if needed
-- hybrid recommendation scoring that includes citation proximity once citation edges are available
+- richer citation-aware recommendation features that use multi-hop path signals instead of direct-neighbour citation counts alone
+- annotation listing, editing, and deletion endpoints
+- deployment verification on a hosted platform such as Render or Railway

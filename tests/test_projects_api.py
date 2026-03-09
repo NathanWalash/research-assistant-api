@@ -9,7 +9,10 @@ from research_assistant_api.main import create_app
 @pytest.fixture
 def client(sqlite_database_url: str, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("RESEARCH_API_ENVIRONMENT", "test")
-    monkeypatch.setenv("RESEARCH_API_JWT_SECRET_KEY", "test-secret-key")
+    monkeypatch.setenv(
+        "RESEARCH_API_JWT_SECRET_KEY",
+        "test-secret-key-with-32-byte-minimum",
+    )
     engine = get_engine(sqlite_database_url)
     Base.metadata.create_all(engine)
     return TestClient(create_app())

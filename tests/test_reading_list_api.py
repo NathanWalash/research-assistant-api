@@ -30,7 +30,10 @@ def _seed_dataset(database_url: str) -> None:
 @pytest.fixture
 def client(sqlite_database_url: str, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     monkeypatch.setenv("RESEARCH_API_ENVIRONMENT", "test")
-    monkeypatch.setenv("RESEARCH_API_JWT_SECRET_KEY", "test-secret-key")
+    monkeypatch.setenv(
+        "RESEARCH_API_JWT_SECRET_KEY",
+        "test-secret-key-with-32-byte-minimum",
+    )
     _seed_dataset(sqlite_database_url)
     return TestClient(create_app())
 

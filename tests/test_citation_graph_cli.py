@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 from research_assistant_api.citation_graph import cli
 from research_assistant_api.citation_graph.service import CitationGraphProgress
@@ -50,25 +51,24 @@ def test_citation_graph_cli_prints_summary_and_forwards_args(
 
     assert exit_code == 0
     config = captured["config"]
-    assert str(config.dataset_csv_path) == "default-dataset.csv"
-    assert str(config.query_csv_path) == ".tmp\\leeds_citation_queries.csv"
+    assert Path(config.dataset_csv_path) == Path("default-dataset.csv")
+    assert Path(config.query_csv_path) == Path(".tmp/leeds_citation_queries.csv")
     assert config.batch_size == 25
     assert config.limit == 3
     assert config.rate_interval == 0.5
     assert config.email == "me@example.com"
     assert config.quiet is True
     assert config.reset is True
-    assert json.loads(capsys.readouterr().out) == {
-        "batches_completed": 1,
-        "batches_total": 1,
-        "edge_pairs_csv_path": ".tmp\\leeds_citation_edges.csv",
-        "edges_exported": 2,
-        "papers_fetched": 3,
-        "papers_selected": 3,
-        "progress_path": ".tmp\\leeds_citation_progress.json",
-        "query_csv_path": ".tmp\\leeds_citation_queries.csv",
-        "works_jsonl_path": ".tmp\\leeds_citation_works.jsonl",
-    }
+    body = json.loads(capsys.readouterr().out)
+    assert body["batches_completed"] == 1
+    assert body["batches_total"] == 1
+    assert body["edges_exported"] == 2
+    assert body["papers_fetched"] == 3
+    assert body["papers_selected"] == 3
+    assert Path(body["edge_pairs_csv_path"]) == Path(".tmp/leeds_citation_edges.csv")
+    assert Path(body["progress_path"]) == Path(".tmp/leeds_citation_progress.json")
+    assert Path(body["query_csv_path"]) == Path(".tmp/leeds_citation_queries.csv")
+    assert Path(body["works_jsonl_path"]) == Path(".tmp/leeds_citation_works.jsonl")
 
 
 def test_citation_graph_print_progress_writes_single_line(capsys) -> None:
