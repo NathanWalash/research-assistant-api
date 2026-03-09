@@ -178,7 +178,11 @@ Output files are written under `.tmp/` by default:
 - `.tmp/leeds_citation_edges.csv`
 - `.tmp/leeds_citation_progress.json`
 
+The audit JSONL is intentionally minimal and stores only the work `id` plus `referenced_works`, which keeps resume state smaller and avoids writing unnecessary metadata for this enrichment task.
+
 If a long run is interrupted, rerunning the same command will resume from the existing JSONL file and continue fetching the remaining Leeds work batches. Use `--reset` only when you want to discard the current JSONL, edge CSV, and progress state and start again from scratch.
+
+The progress JSON includes completed batches, fetched papers, exported edges, elapsed seconds, and an estimated remaining time once the current run has finished at least one new batch.
 
 This produces a real Leeds-to-Leeds citation subgraph. It is still a subset graph, so citation neighbourhoods and shortest paths are only complete within the Leeds corpus, not across all OpenAlex works.
 
