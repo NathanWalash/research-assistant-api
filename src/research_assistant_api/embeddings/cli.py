@@ -6,7 +6,6 @@ from dataclasses import asdict
 from research_assistant_api.core.config import get_settings
 from research_assistant_api.db.session import get_session_factory
 from research_assistant_api.embeddings import (
-    EmbeddingGenerationSummary,
     PaperEmbeddingService,
     SentenceTransformerEmbedder,
 )
