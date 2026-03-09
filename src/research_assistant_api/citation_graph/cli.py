@@ -80,11 +80,18 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def print_progress(progress: CitationGraphProgress) -> None:
+    eta_text = (
+        f", eta {progress.estimated_remaining_seconds}s"
+        if progress.estimated_remaining_seconds is not None
+        else ""
+    )
     print(
         "Fetched batches "
         f"{progress.batches_completed}/{progress.batches_total}, "
         f"papers {progress.papers_fetched}/{progress.papers_total}, "
-        f"edges {progress.edges_exported}",
+        f"edges {progress.edges_exported}, "
+        f"elapsed {progress.elapsed_seconds}s"
+        f"{eta_text}",
         file=sys.stderr,
         flush=True,
     )

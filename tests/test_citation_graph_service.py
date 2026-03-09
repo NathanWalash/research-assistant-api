@@ -180,6 +180,8 @@ def test_export_service_runs_openalexnet_and_converts_edges(
             papers_fetched=0,
             papers_total=2,
             edges_exported=0,
+            elapsed_seconds=0,
+            estimated_remaining_seconds=None,
         ),
         CitationGraphProgress(
             batches_completed=1,
@@ -187,6 +189,8 @@ def test_export_service_runs_openalexnet_and_converts_edges(
             papers_fetched=2,
             papers_total=2,
             edges_exported=1,
+            elapsed_seconds=0,
+            estimated_remaining_seconds=0,
         ),
     ]
 
@@ -264,4 +268,66 @@ def test_export_service_resumes_from_existing_jsonl(
             "citing_paper_id": "https://openalex.org/W2",
             "cited_paper_id": "https://openalex.org/W3",
         },
+    ]
+
+
+def test_export_service_filters_existing_jsonl_to_current_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    temp_dir = make_repo_temp_dir()
+    dataset_csv_path = temp_dir / "papers.csv"
+    dataset_csv_path.write_text(
+        "id,display_name\n"
+        "https://openalex.org/W1,Paper 1\n"
+        "https://openalex.org/W2,Paper 2\n",
+        encoding="utf-8",
+    )
+    works_jsonl_path = temp_dir / "works.jsonl"
+    works_jsonl_path.write_text(
+        json.dumps(
+            {
+                "id": "https://openalex.org/W1",
+                "referenced_works": ["https://openalex.org/W2"],
+            }
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "id": "https://openalex.org/W999",
+                "referenced_works": [],
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    config = CitationGraphExportConfig(
+        dataset_csv_path=dataset_csv_path,
+        query_csv_path=temp_dir / "queries.csv",
+        works_jsonl_path=works_jsonl_path,
+        edge_pairs_csv_path=temp_dir / "citation_edges.csv",
+        progress_path=temp_dir / "progress.json",
+        batch_size=50,
+        limit=2,
+    )
+
+    def fake_fetch_batch(paper_ids, *, email, rate_interval):
+        return [
+            {
+                "id": "https://openalex.org/W2",
+                "referenced_works": [],
+            }
+        ]
+
+    monkeypatch.setattr(service, "_fetch_openalex_batch", fake_fetch_batch)
+
+    summary = CitationGraphExportService().export(config)
+
+    assert summary.papers_fetched == 2
+    with config.edge_pairs_csv_path.open("r", encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+    assert rows == [
+        {
+            "citing_paper_id": "https://openalex.org/W1",
+            "cited_paper_id": "https://openalex.org/W2",
+        }
     ]

@@ -79,10 +79,12 @@ def test_citation_graph_print_progress_writes_single_line(capsys) -> None:
             papers_fetched=600,
             papers_total=31856,
             edges_exported=123,
+            elapsed_seconds=90,
+            estimated_remaining_seconds=1200,
         )
     )
 
     assert (
         capsys.readouterr().err
-        == "Fetched batches 12/638, papers 600/31856, edges 123\n"
+        == "Fetched batches 12/638, papers 600/31856, edges 123, elapsed 90s, eta 1200s\n"
     )

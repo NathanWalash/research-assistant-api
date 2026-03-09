@@ -4,6 +4,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import asdict
 from dataclasses import dataclass
 from pathlib import Path
+import time
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +29,8 @@ class CitationGraphProgress:
     papers_fetched: int
     papers_total: int
     edges_exported: int
+    elapsed_seconds: int
+    estimated_remaining_seconds: int | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +119,17 @@ def extract_citation_edges(
     return edges
 
 
+def minimize_work_record(work: dict[str, object]) -> dict[str, object]:
+    return {
+        "id": str(work.get("id") or "").strip(),
+        "referenced_works": [
+            str(referenced_work).strip()
+            for referenced_work in work.get("referenced_works") or []
+            if str(referenced_work).strip()
+        ],
+    }
+
+
 def write_edge_pairs_csv(
     output_path: Path,
     works: Sequence[dict[str, object]],
@@ -154,7 +168,7 @@ def append_works_jsonl(output_path: Path, works: Sequence[dict[str, object]]) ->
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with output_path.open("a", encoding="utf-8", newline="\n") as handle:
         for work in works:
-            handle.write(json.dumps(work, sort_keys=True))
+            handle.write(json.dumps(minimize_work_record(work), sort_keys=True))
             handle.write("\n")
 
 
@@ -171,11 +185,12 @@ def load_existing_works(works_jsonl_path: Path) -> list[dict[str, object]]:
             if not stripped:
                 continue
             work = json.loads(stripped)
-            paper_id = str(work.get("id") or "").strip()
+            minimized_work = minimize_work_record(work)
+            paper_id = str(minimized_work.get("id") or "").strip()
             if not paper_id or paper_id in seen_paper_ids:
                 continue
             seen_paper_ids.add(paper_id)
-            work_records.append(work)
+            work_records.append(minimized_work)
 
     return work_records
 
@@ -217,6 +232,34 @@ def write_progress_file(
     )
 
 
+def _build_progress(
+    *,
+    batches_completed: int,
+    batches_total: int,
+    papers_fetched: int,
+    papers_total: int,
+    edges_exported: int,
+    started_at: float,
+    fetched_batches_this_run: int,
+) -> CitationGraphProgress:
+    elapsed_seconds = int(time.monotonic() - started_at)
+    estimated_remaining_seconds: int | None = None
+    if fetched_batches_this_run > 0:
+        average_batch_seconds = elapsed_seconds / fetched_batches_this_run
+        remaining_batches = max(batches_total - batches_completed, 0)
+        estimated_remaining_seconds = int(average_batch_seconds * remaining_batches)
+
+    return CitationGraphProgress(
+        batches_completed=batches_completed,
+        batches_total=batches_total,
+        papers_fetched=papers_fetched,
+        papers_total=papers_total,
+        edges_exported=edges_exported,
+        elapsed_seconds=elapsed_seconds,
+        estimated_remaining_seconds=estimated_remaining_seconds,
+    )
+
+
 class CitationGraphExportService:
     def export(
         self,
@@ -228,6 +271,7 @@ class CitationGraphExportService:
             config.dataset_csv_path,
             limit=config.limit,
         )
+        started_at = time.monotonic()
         batches = chunk_paper_ids(paper_ids, config.batch_size)
         allowed_paper_ids = set(paper_ids)
         queries_written = write_query_file(
@@ -245,7 +289,18 @@ class CitationGraphExportService:
                 if path.exists():
                     path.unlink()
 
-        existing_works = load_existing_works(config.works_jsonl_path)
+        all_existing_works = load_existing_works(config.works_jsonl_path)
+        if all_existing_works:
+            config.works_jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+            with config.works_jsonl_path.open("w", encoding="utf-8", newline="\n") as handle:
+                for work in all_existing_works:
+                    handle.write(json.dumps(work, sort_keys=True))
+                    handle.write("\n")
+        existing_works = [
+            work
+            for work in all_existing_works
+            if str(work.get("id") or "").strip() in allowed_paper_ids
+        ]
         fetched_paper_ids = {
             str(work.get("id") or "").strip()
             for work in existing_works
@@ -260,12 +315,15 @@ class CitationGraphExportService:
         batches_completed = sum(
             1 for batch in batches if all(paper_id in fetched_paper_ids for paper_id in batch)
         )
-        progress = CitationGraphProgress(
+        fetched_batches_this_run = 0
+        progress = _build_progress(
             batches_completed=batches_completed,
             batches_total=queries_written,
             papers_fetched=len(fetched_paper_ids),
             papers_total=len(paper_ids),
             edges_exported=edges_exported,
+            started_at=started_at,
+            fetched_batches_this_run=fetched_batches_this_run,
         )
         write_progress_file(config.progress_path, progress)
         if progress_callback is not None:
@@ -282,7 +340,7 @@ class CitationGraphExportService:
             )
 
             new_works = [
-                work
+                minimize_work_record(work)
                 for work in fetched_works
                 if str(work.get("id") or "").strip() not in fetched_paper_ids
             ]
@@ -315,12 +373,15 @@ class CitationGraphExportService:
                             edges_exported += 1
 
             batches_completed += 1
-            progress = CitationGraphProgress(
+            fetched_batches_this_run += 1
+            progress = _build_progress(
                 batches_completed=batches_completed,
                 batches_total=queries_written,
                 papers_fetched=len(fetched_paper_ids),
                 papers_total=len(paper_ids),
                 edges_exported=edges_exported,
+                started_at=started_at,
+                fetched_batches_this_run=fetched_batches_this_run,
             )
             write_progress_file(config.progress_path, progress)
             if progress_callback is not None:
