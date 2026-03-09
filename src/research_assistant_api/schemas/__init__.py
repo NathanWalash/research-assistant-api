@@ -16,6 +16,10 @@ from research_assistant_api.schemas.auth import (
     UserLoginRequest,
     UserRegistrationRequest,
 )
+from research_assistant_api.schemas.citations import (
+    CitationNeighborhoodResponse,
+    CitationPathResponse,
+)
 from research_assistant_api.schemas.discovery import (
     AuthorDetail,
     InstitutionSummary,
@@ -47,6 +51,8 @@ __all__ = [
     "AnnotationCreateRequest",
     "AnnotationResponse",
     "AuthenticatedUser",
+    "CitationNeighborhoodResponse",
+    "CitationPathResponse",
     "CollaborationPairItem",
     "InstitutionSummary",
     "PaperAuthorSummary",

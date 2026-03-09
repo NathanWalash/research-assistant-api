@@ -7,6 +7,10 @@ from research_assistant_api.services.auth import (
     AuthService,
     UserAlreadyExistsError,
 )
+from research_assistant_api.services.citations import (
+    CitationGraphService,
+    CitationPathNotFoundError,
+)
 from research_assistant_api.services.discovery import (
     AuthorService,
     DiscoveryNotFoundError,
@@ -34,6 +38,8 @@ __all__ = [
     "AuthenticationError",
     "AuthService",
     "AuthorService",
+    "CitationGraphService",
+    "CitationPathNotFoundError",
     "DiscoveryNotFoundError",
     "DuplicateReadingListItemError",
     "PaperService",
