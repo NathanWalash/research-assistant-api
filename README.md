@@ -13,11 +13,14 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - initial relational schema
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery endpoints for papers, authors, and topics
+- pgvector-backed paper embedding support
+- embedding generation pipeline using sentence-transformers
 - analytics endpoints for top papers, topic distribution, publication trends, and co-authorship pairs
 - JWT-based authentication endpoints
 - protected project CRUD endpoints
 - protected reading list endpoints
 - authenticated annotation endpoint
+- similar papers endpoint
 - smoke and endpoint tests
 
 ## Local Development
@@ -55,6 +58,7 @@ The current tests cover:
 - Alembic migration wiring against SQLite
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery API read endpoints for papers, authors, and topics
+- embedding generation pipeline and similarity ranking
 - analytics API read endpoints
 - authentication endpoints and bearer-token access control
 - protected project CRUD workflows
@@ -105,6 +109,32 @@ The current Leeds CSV includes:
 
 It does not include citation edge pairs in the main file, so citation neighbourhood data requires a supplementary CSV with `citing_paper_id` and `cited_paper_id` columns.
 
+## Embeddings
+
+Paper embeddings are generated from:
+
+- `title + abstract`
+
+If a paper has no abstract, the pipeline falls back to the title alone.
+
+Generate embeddings with:
+
+```bash
+research-assistant-embed --limit 100
+```
+
+Useful options:
+
+- `research-assistant-embed --paper-id https://openalex.org/W123`
+- `research-assistant-embed --limit 100 --force`
+
+Implementation notes:
+
+- PostgreSQL stores embeddings in a `pgvector` column on `papers.embedding`
+- similarity queries use cosine distance in Postgres
+- SQLite tests store embeddings as JSON and rank with a Python cosine fallback
+- the default model is `sentence-transformers/all-MiniLM-L6-v2`
+
 ## Dataset Limitation
 
 The Leeds dataset currently loaded into the project contains aggregate citation counts such as `cited_by_count`, but not explicit work-to-work citation edges.
@@ -132,7 +162,8 @@ Those graph features remain possible in the architecture, but only after ingesti
 - JWT authentication
 - project CRUD workflows
 - reading list and annotation workflows
-- semantic similarity and recommendations as the next planned extension
+- semantic similarity via stored embeddings
+- recommendations as the next planned extension
 
 ## Implemented Authentication Endpoints
 
@@ -171,6 +202,7 @@ Annotations currently support authenticated creation. Listing and editing annota
 
 - `GET /papers/search`
 - `GET /papers/{id}`
+- `GET /papers/{id}/similar`
 - `GET /authors/{id}`
 - `GET /authors/{id}/papers`
 - `GET /topics`
@@ -187,7 +219,6 @@ The collaboration endpoint currently exposes co-authorship pairs because that re
 
 ## Future Extension
 
-- embedding generation and similar-paper retrieval
 - hybrid recommendations once the embedding stack is in place
 - citation graph exploration via supplementary citation-edge ingestion
 - shortest citation path and neighbourhood endpoints once citation edges are available
