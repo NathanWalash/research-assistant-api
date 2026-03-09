@@ -1,5 +1,5 @@
 from research_assistant_api.repositories.similarity_repository import (
-    SimilarPaperRecord,
+    ScoredPaperRecord,
     SimilarityRepository,
 )
 from research_assistant_api.schemas.discovery import TopicSummary
@@ -19,7 +19,7 @@ def _build_topic_summary(topic: object | None) -> TopicSummary | None:
     return TopicSummary.model_validate(topic)
 
 
-def _build_similar_paper_response(record: SimilarPaperRecord) -> SimilarPaperResponse:
+def _build_similar_paper_response(record: ScoredPaperRecord) -> SimilarPaperResponse:
     paper = record.paper
     return SimilarPaperResponse(
         id=paper.id,

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from research_assistant_api.models import Paper
 
 
 @dataclass(slots=True)
-class SimilarPaperRecord:
+class ScoredPaperRecord:
     paper: Paper
     similarity_score: float
 
@@ -31,20 +32,32 @@ class SimilarityRepository:
         *,
         limit: int,
         offset: int,
-    ) -> list[SimilarPaperRecord]:
+    ) -> list[ScoredPaperRecord]:
         if target_paper.embedding is None:
             return []
 
+        return self.list_by_embedding(
+            target_paper.embedding,
+            exclude_paper_ids={target_paper.id},
+            limit=limit,
+            offset=offset,
+        )
+
+    def list_by_embedding(
+        self,
+        target_embedding: Sequence[float],
+        *,
+        exclude_paper_ids: set[str],
+        limit: int,
+        offset: int,
+    ) -> list[ScoredPaperRecord]:
         if self.session.bind is not None and self.session.bind.dialect.name == "postgresql":
-            distance = Paper.embedding.cosine_distance(target_paper.embedding)
+            distance = Paper.embedding.cosine_distance(list(target_embedding))
             similarity = (1 - distance).label("similarity_score")
             statement = (
                 select(Paper, similarity)
                 .options(selectinload(Paper.topic))
-                .where(
-                    Paper.id != target_paper.id,
-                    Paper.embedding.is_not(None),
-                )
+                .where(Paper.embedding.is_not(None))
                 .order_by(
                     distance.asc(),
                     Paper.citation_count.desc(),
@@ -54,25 +67,26 @@ class SimilarityRepository:
                 .offset(offset)
                 .limit(limit)
             )
+            if exclude_paper_ids:
+                statement = statement.where(Paper.id.not_in(exclude_paper_ids))
             return [
-                SimilarPaperRecord(paper=row[0], similarity_score=float(row[1]))
+                ScoredPaperRecord(paper=row[0], similarity_score=float(row[1]))
                 for row in self.session.execute(statement)
             ]
 
         statement = (
             select(Paper)
             .options(selectinload(Paper.topic))
-            .where(
-                Paper.id != target_paper.id,
-            )
         )
+        if exclude_paper_ids:
+            statement = statement.where(Paper.id.not_in(exclude_paper_ids))
         candidates = list(self.session.scalars(statement).all())
         ranked_candidates = sorted(
             (
-                SimilarPaperRecord(
+                ScoredPaperRecord(
                     paper=candidate,
                     similarity_score=cosine_similarity(
-                        target_paper.embedding,
+                        target_embedding,
                         candidate.embedding or [],
                     ),
                 )

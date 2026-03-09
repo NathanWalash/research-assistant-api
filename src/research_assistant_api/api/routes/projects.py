@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from research_assistant_api.api.dependencies.auth import get_current_user
@@ -11,10 +11,14 @@ from research_assistant_api.repositories.project_repository import ProjectReposi
 from research_assistant_api.repositories.reading_list_repository import (
     ReadingListRepository,
 )
+from research_assistant_api.repositories.similarity_repository import SimilarityRepository
 from research_assistant_api.schemas.projects import (
     ProjectCreateRequest,
     ProjectResponse,
     ProjectUpdateRequest,
+)
+from research_assistant_api.schemas.recommendations import (
+    ProjectRecommendationResponse,
 )
 from research_assistant_api.schemas.reading_list import (
     ReadingListItemCreateRequest,
@@ -24,8 +28,10 @@ from research_assistant_api.services import (
     DiscoveryNotFoundError,
     DuplicateReadingListItemError,
     ProjectNotFoundError,
+    ProjectRecommendationsUnavailableError,
     ProjectService,
     ReadingListService,
+    RecommendationService,
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -40,6 +46,14 @@ def _build_reading_list_service(session: Session) -> ReadingListService:
         project_repository=ProjectRepository(session),
         reading_list_repository=ReadingListRepository(session),
         paper_repository=PaperRepository(session),
+    )
+
+
+def _build_recommendation_service(session: Session) -> RecommendationService:
+    return RecommendationService(
+        project_repository=ProjectRepository(session),
+        reading_list_repository=ReadingListRepository(session),
+        similarity_repository=SimilarityRepository(session),
     )
 
 
@@ -106,6 +120,34 @@ def list_reading_list_items(
         return service.list_items(current_user, project_id)
     except ProjectNotFoundError as error:
         _raise_not_found(error)
+
+
+@router.get(
+    "/{project_id}/recommendations",
+    response_model=list[ProjectRecommendationResponse],
+)
+def list_project_recommendations(
+    project_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[ProjectRecommendationResponse]:
+    service = _build_recommendation_service(session)
+    try:
+        return service.list_project_recommendations(
+            current_user,
+            project_id,
+            limit=limit,
+            offset=offset,
+        )
+    except ProjectNotFoundError as error:
+        _raise_not_found(error)
+    except ProjectRecommendationsUnavailableError as error:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
