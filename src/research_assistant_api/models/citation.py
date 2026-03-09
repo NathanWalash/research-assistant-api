@@ -17,10 +17,12 @@ class Citation(Base):
     citing_paper_id: Mapped[str] = mapped_column(
         ForeignKey("papers.id"),
         primary_key=True,
+        index=True,
     )
     cited_paper_id: Mapped[str] = mapped_column(
         ForeignKey("papers.id"),
         primary_key=True,
+        index=True,
     )
 
     citing_paper: Mapped[Paper] = relationship(
