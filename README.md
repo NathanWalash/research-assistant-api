@@ -109,6 +109,14 @@ The current Leeds CSV includes:
 
 It does not include citation edge pairs in the main file, so citation neighbourhood data requires a supplementary CSV with `citing_paper_id` and `cited_paper_id` columns.
 
+The importer now skips malformed source rows that are missing required paper fields such as `id` or `display_name`, and reports that skipped-row count in the CLI summary instead of aborting the whole import.
+
+OpenAlex author IDs are treated as the authoritative author key during ingestion. ORCID values are stored as optional metadata, but they are not enforced as globally unique because the Leeds export contains repeated ORCIDs across different OpenAlex author records.
+
+Paper titles and abstracts are stored without importer-side truncation so the full OpenAlex text can be retained even when individual rows exceed conservative `VARCHAR` lengths.
+
+The same principle applies to DOI metadata: DOIs are retained when present, but they are not enforced as globally unique because the Leeds export contains repeated DOI values across different OpenAlex work IDs.
+
 ## Embeddings
 
 Paper embeddings are generated from:
