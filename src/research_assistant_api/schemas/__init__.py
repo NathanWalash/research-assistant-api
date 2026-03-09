@@ -35,6 +35,7 @@ from research_assistant_api.schemas.reading_list import (
     ReadingListItemResponse,
     ReadingListItemUpdateRequest,
 )
+from research_assistant_api.schemas.similarity import SimilarPaperResponse
 
 __all__ = [
     "AnalyticsPaperItem",
@@ -55,6 +56,7 @@ __all__ = [
     "ReadingListItemCreateRequest",
     "ReadingListItemResponse",
     "ReadingListItemUpdateRequest",
+    "SimilarPaperResponse",
     "TopicAnalyticsItem",
     "TopicListItem",
     "TopicSummary",
