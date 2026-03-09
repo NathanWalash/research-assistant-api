@@ -296,7 +296,21 @@ Authentication uses bearer tokens signed with the JWT settings defined in `.env.
 
 Project routes are scoped to the authenticated user, so users can only see and modify their own projects.
 
-Project recommendations are built from the embeddings of papers already saved in the project's reading list. Candidate papers already present in the reading list are excluded, and ranking is based on semantic similarity to the project embedding centroid.
+Project recommendations are built from the papers already saved in the project's reading list. Candidate papers already present in the reading list are excluded.
+
+Recommendation scoring now supports:
+
+- `mode=hybrid` for combined semantic and citation scoring
+- `mode=semantic` for embedding-only ranking
+- `mode=citation` for citation-proximity-only ranking
+- optional `semantic_weight` and `citation_weight` query parameters to override the default mix
+
+Default hybrid scoring uses:
+
+- `0.7` semantic similarity
+- `0.3` citation signal within the Leeds citation subgraph
+
+The response now includes the total recommendation score plus the semantic and citation component scores, together with the applied weights.
 
 ## Implemented Reading List Endpoints
 
