@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     jwt_secret_key: str = "change-this-development-secret"
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_batch_size: int = 32
+    embedding_dimensions: int = 384
     dataset_csv_path: Path = Path("UniOfLeedsArticles2018_to_Present.csv")
     citation_edges_csv_path: Path | None = None
     ingestion_batch_size: int = 500

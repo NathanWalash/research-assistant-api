@@ -3,10 +3,12 @@ from __future__ import annotations
 from datetime import date
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey, Integer, String, Text
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import JSON, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from research_assistant_api.db.base import Base
+from research_assistant_api.embeddings.service import EMBEDDING_DIMENSIONS
 
 if TYPE_CHECKING:
     from research_assistant_api.models.annotation import Annotation
@@ -29,6 +31,10 @@ class Paper(Base):
     journal: Mapped[str | None] = mapped_column(String(255), nullable=True)
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)
     work_type: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    embedding: Mapped[list[float] | None] = mapped_column(
+        Vector(EMBEDDING_DIMENSIONS).with_variant(JSON(), "sqlite"),
+        nullable=True,
+    )
     topic_id: Mapped[str | None] = mapped_column(
         ForeignKey("topics.id"),
         nullable=True,
