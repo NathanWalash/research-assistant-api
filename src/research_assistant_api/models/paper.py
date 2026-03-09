@@ -22,12 +22,12 @@ class Paper(Base):
     __tablename__ = "papers"
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
-    title: Mapped[str] = mapped_column(String(512), nullable=False, index=True)
+    title: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     abstract: Mapped[str | None] = mapped_column(Text, nullable=True)
     publication_year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
     publication_date: Mapped[date | None] = mapped_column(nullable=True)
     citation_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    doi: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    doi: Mapped[str | None] = mapped_column(String(255), nullable=True)
     journal: Mapped[str | None] = mapped_column(String(255), nullable=True)
     language: Mapped[str | None] = mapped_column(String(16), nullable=True)
     work_type: Mapped[str | None] = mapped_column(String(64), nullable=True)

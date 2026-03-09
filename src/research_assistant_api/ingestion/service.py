@@ -31,6 +31,7 @@ from research_assistant_api.models import (
 @dataclass(slots=True)
 class IngestionSummary:
     source_rows_processed: int = 0
+    source_rows_skipped: int = 0
     papers_upserted: int = 0
     topics_upserted: int = 0
     authors_upserted: int = 0
@@ -244,7 +245,12 @@ class CsvIngestionService:
             rows = islice(rows, config.limit)
 
         for row in rows:
-            parsed = parse_dataset_row(row)
+            try:
+                parsed = parse_dataset_row(row)
+            except ValueError:
+                summary.source_rows_skipped += 1
+                continue
+
             summary.source_rows_processed += 1
 
             if parsed.topic is not None:

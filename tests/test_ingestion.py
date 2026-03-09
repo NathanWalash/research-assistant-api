@@ -221,3 +221,106 @@ def test_csv_ingestion_skips_invalid_citation_edge_rows(
     assert summary.citation_import_skipped is False
     assert summary.citations_upserted == 1
     assert citation_count == 1
+
+
+def test_csv_ingestion_skips_rows_missing_required_paper_fields(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_openalex_leeds_invalid_row.csv",
+        citation_csv_path=None,
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        paper_count = session.scalar(select(func.count()).select_from(Paper))
+
+    assert summary.source_rows_processed == 2
+    assert summary.source_rows_skipped == 1
+    assert summary.papers_upserted == 2
+    assert paper_count == 2
+
+
+def test_csv_ingestion_allows_duplicate_orcids_across_author_ids(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_duplicate_author_orcid.csv",
+        citation_csv_path=None,
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        authors = session.scalars(select(Author).order_by(Author.id.asc())).all()
+
+    assert summary.source_rows_processed == 2
+    assert summary.source_rows_skipped == 0
+    assert summary.authors_upserted == 2
+    assert [author.id for author in authors] == [
+        "https://openalex.org/A10",
+        "https://openalex.org/A11",
+    ]
+    assert authors[0].orcid == "https://orcid.org/0000-0000-0000-0010"
+    assert authors[1].orcid == "https://orcid.org/0000-0000-0000-0010"
+
+
+def test_csv_ingestion_accepts_titles_longer_than_previous_varchar_limit(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_long_title.csv",
+        citation_csv_path=None,
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        paper = session.scalar(select(Paper).where(Paper.id == "https://openalex.org/W-long"))
+
+    assert summary.source_rows_processed == 1
+    assert summary.source_rows_skipped == 0
+    assert summary.papers_upserted == 1
+    assert paper is not None
+    assert len(paper.title) > 512
+
+
+def test_csv_ingestion_allows_duplicate_dois_across_paper_ids(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_duplicate_paper_doi.csv",
+        citation_csv_path=None,
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        papers = session.scalars(select(Paper).order_by(Paper.id.asc())).all()
+
+    assert summary.source_rows_processed == 2
+    assert summary.source_rows_skipped == 0
+    assert summary.papers_upserted == 2
+    assert [paper.id for paper in papers] == [
+        "https://openalex.org/W20",
+        "https://openalex.org/W21",
+    ]
+    assert papers[0].doi == "https://doi.org/10.1234/shared"
+    assert papers[1].doi == "https://doi.org/10.1234/shared"

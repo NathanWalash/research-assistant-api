@@ -72,5 +72,6 @@ def test_ingestion_cli_prints_summary_and_forwards_args(monkeypatch, capsys) -> 
         "institutions_upserted": 0,
         "papers_upserted": 2,
         "source_rows_processed": 3,
+        "source_rows_skipped": 0,
         "topics_upserted": 1,
     }

@@ -26,7 +26,7 @@ class Author(Base):
 
     id: Mapped[str] = mapped_column(String(255), primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    orcid: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    orcid: Mapped[str | None] = mapped_column(String(255), nullable=True)
     institution_id: Mapped[str | None] = mapped_column(
         ForeignKey("institutions.id"),
         nullable=True,
