@@ -26,6 +26,11 @@ from research_assistant_api.schemas.projects import (
     ProjectResponse,
     ProjectUpdateRequest,
 )
+from research_assistant_api.schemas.reading_list import (
+    ReadingListItemCreateRequest,
+    ReadingListItemResponse,
+    ReadingListItemUpdateRequest,
+)
 
 __all__ = [
     "AnalyticsPaperItem",
@@ -41,6 +46,9 @@ __all__ = [
     "ProjectCreateRequest",
     "ProjectResponse",
     "ProjectUpdateRequest",
+    "ReadingListItemCreateRequest",
+    "ReadingListItemResponse",
+    "ReadingListItemUpdateRequest",
     "TopicAnalyticsItem",
     "TopicListItem",
     "TopicSummary",
