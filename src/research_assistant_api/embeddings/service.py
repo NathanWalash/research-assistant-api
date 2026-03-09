@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from math import sqrt
 from typing import Protocol
@@ -74,6 +74,12 @@ class EmbeddingGenerationSummary:
     papers_embedded: int = 0
 
 
+@dataclass(slots=True)
+class EmbeddingProgress:
+    papers_processed: int
+    papers_total: int
+
+
 class PaperEmbeddingService:
     def __init__(
         self,
@@ -89,6 +95,8 @@ class PaperEmbeddingService:
         limit: int | None,
         paper_id: str | None,
         force: bool,
+        batch_size: int | None = None,
+        progress_callback: Callable[[EmbeddingProgress], None] | None = None,
     ) -> EmbeddingGenerationSummary:
         papers = self.repository.list_papers_for_embedding(
             limit=limit,
@@ -99,8 +107,20 @@ class PaperEmbeddingService:
         if not papers:
             return summary
 
-        texts = [build_embedding_text(paper) for paper in papers]
-        embeddings = self.embedder.encode_texts(texts)
-        self.repository.save_embeddings(papers, embeddings)
-        summary.papers_embedded = len(embeddings)
+        effective_batch_size = max(1, batch_size or len(papers))
+        for start in range(0, len(papers), effective_batch_size):
+            batch = papers[start : start + effective_batch_size]
+            texts = [build_embedding_text(paper) for paper in batch]
+            embeddings = self.embedder.encode_texts(texts)
+            self.repository.save_embeddings(batch, embeddings)
+            summary.papers_embedded += len(embeddings)
+
+            if progress_callback is not None:
+                progress_callback(
+                    EmbeddingProgress(
+                        papers_processed=summary.papers_embedded,
+                        papers_total=summary.papers_selected,
+                    )
+                )
+
         return summary

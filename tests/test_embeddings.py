@@ -8,6 +8,7 @@ from research_assistant_api.embeddings import (
     PaperEmbeddingService,
     build_embedding_text,
 )
+from research_assistant_api.embeddings.service import EmbeddingProgress
 from research_assistant_api.ingestion.config import IngestionConfig
 from research_assistant_api.ingestion.service import CsvIngestionService
 from research_assistant_api.models import Paper
@@ -59,3 +60,39 @@ def test_embedding_pipeline_stores_generated_embeddings(
     assert summary.papers_embedded == 2
     assert papers[0].embedding == [1.0, 0.0, 0.0]
     assert papers[1].embedding == [2.0, 0.0, 0.0]
+
+
+def test_embedding_pipeline_reports_progress_by_batch(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_openalex_leeds.csv",
+        citation_csv_path=None,
+        batch_size=10,
+    )
+    progress_updates: list[EmbeddingProgress] = []
+
+    with session_factory() as session:
+        CsvIngestionService(session).ingest(config)
+        service = PaperEmbeddingService(
+            repository=EmbeddingRepository(session),
+            embedder=FakeEmbedder(),
+        )
+        summary = service.generate_embeddings(
+            limit=None,
+            paper_id=None,
+            force=False,
+            batch_size=1,
+            progress_callback=progress_updates.append,
+        )
+
+    assert summary.papers_selected == 2
+    assert summary.papers_embedded == 2
+    assert progress_updates == [
+        EmbeddingProgress(papers_processed=1, papers_total=2),
+        EmbeddingProgress(papers_processed=2, papers_total=2),
+    ]

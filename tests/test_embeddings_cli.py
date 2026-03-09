@@ -1,6 +1,7 @@
 import json
 
 from research_assistant_api.embeddings import cli
+from research_assistant_api.embeddings.service import EmbeddingProgress
 from research_assistant_api.embeddings.service import EmbeddingGenerationSummary
 
 
@@ -32,12 +33,15 @@ def test_embeddings_cli_prints_summary_and_forwards_args(monkeypatch, capsys) ->
             captured["repository"] = repository
             captured["embedder"] = embedder
 
-        def generate_embeddings(self, *, limit, paper_id, force):
+        def generate_embeddings(self, *, limit, paper_id, force, batch_size, progress_callback):
             captured["generate_kwargs"] = {
                 "limit": limit,
                 "paper_id": paper_id,
                 "force": force,
+                "batch_size": batch_size,
             }
+            progress_callback(EmbeddingProgress(papers_processed=1, papers_total=2))
+            progress_callback(EmbeddingProgress(papers_processed=2, papers_total=2))
             return EmbeddingGenerationSummary(papers_selected=2, papers_embedded=2)
 
     monkeypatch.setattr(cli, "get_settings", lambda: DummySettings())
@@ -56,8 +60,15 @@ def test_embeddings_cli_prints_summary_and_forwards_args(monkeypatch, capsys) ->
         "limit": 2,
         "paper_id": "paper-1",
         "force": True,
+        "batch_size": 16,
     }
     assert json.loads(capsys.readouterr().out) == {
         "papers_embedded": 2,
         "papers_selected": 2,
     }
+
+
+def test_embeddings_cli_prints_progress_to_stderr(capsys) -> None:
+    cli.print_progress(EmbeddingProgress(papers_processed=3, papers_total=10))
+
+    assert capsys.readouterr().err == "Embedded 3/10 papers\n"

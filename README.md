@@ -130,6 +130,8 @@ Useful options:
 
 Implementation notes:
 
+- the CLI prints running progress as `Embedded X/Y papers` while each batch completes
+- the final JSON summary is still written to standard output for scripting
 - PostgreSQL stores embeddings in a `pgvector` column on `papers.embedding`
 - similarity queries use cosine distance in Postgres
 - SQLite tests store embeddings as JSON and rank with a Python cosine fallback

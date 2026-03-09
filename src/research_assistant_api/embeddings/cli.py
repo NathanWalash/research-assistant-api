@@ -1,11 +1,13 @@
 import argparse
 import json
+import sys
 from collections.abc import Sequence
 from dataclasses import asdict
 
 from research_assistant_api.core.config import get_settings
 from research_assistant_api.db.session import get_session_factory
 from research_assistant_api.embeddings import (
+    EmbeddingProgress,
     PaperEmbeddingService,
     SentenceTransformerEmbedder,
 )
@@ -31,6 +33,14 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def print_progress(progress: EmbeddingProgress) -> None:
+    print(
+        f"Embedded {progress.papers_processed}/{progress.papers_total} papers",
+        file=sys.stderr,
+        flush=True,
+    )
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -51,6 +61,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             limit=args.limit,
             paper_id=args.paper_id,
             force=args.force,
+            batch_size=settings.embedding_batch_size,
+            progress_callback=print_progress,
         )
 
     print(json.dumps(asdict(summary), indent=2, sort_keys=True))

@@ -2,6 +2,7 @@
 
 from research_assistant_api.embeddings.service import (
     EMBEDDING_DIMENSIONS,
+    EmbeddingProgress,
     EmbeddingGenerationSummary,
     PaperEmbeddingService,
     SentenceTransformerEmbedder,
@@ -11,6 +12,7 @@ from research_assistant_api.embeddings.service import (
 
 __all__ = [
     "EMBEDDING_DIMENSIONS",
+    "EmbeddingProgress",
     "EmbeddingGenerationSummary",
     "PaperEmbeddingService",
     "SentenceTransformerEmbedder",
