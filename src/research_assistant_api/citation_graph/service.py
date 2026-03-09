@@ -54,7 +54,8 @@ def iter_dataset_paper_ids(csv_path: Path, *, limit: int | None = None) -> list[
         reader = csv.DictReader(handle)
         for row in reader:
             paper_id = (row.get("id") or "").strip()
-            if not paper_id or paper_id in seen_ids:
+            paper_title = (row.get("display_name") or "").strip()
+            if not paper_id or not paper_title or paper_id in seen_ids:
                 continue
             seen_ids.add(paper_id)
             paper_ids.append(paper_id)

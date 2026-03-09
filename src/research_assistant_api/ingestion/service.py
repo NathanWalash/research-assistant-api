@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from itertools import islice
 from typing import Any
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as postgresql_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 from sqlalchemy.orm import Session
@@ -38,6 +38,7 @@ class IngestionSummary:
     institutions_upserted: int = 0
     authorships_upserted: int = 0
     citations_upserted: int = 0
+    citations_skipped_missing_papers: int = 0
     citation_import_skipped: bool = True
 
 
@@ -515,12 +516,36 @@ class CsvIngestionService:
             return
 
         citation_rows = list(citation_batch.values())
+        paper_ids = {
+            paper_id
+            for citation in citation_rows
+            for paper_id in (
+                citation["citing_paper_id"],
+                citation["cited_paper_id"],
+            )
+        }
+        existing_paper_ids = set(
+            self.session.scalars(select(Paper.id).where(Paper.id.in_(paper_ids))).all()
+        )
+        valid_citation_rows = [
+            citation
+            for citation in citation_rows
+            if citation["citing_paper_id"] in existing_paper_ids
+            and citation["cited_paper_id"] in existing_paper_ids
+        ]
+        summary.citations_skipped_missing_papers += (
+            len(citation_rows) - len(valid_citation_rows)
+        )
+        if not valid_citation_rows:
+            citation_batch.clear()
+            return
+
         _upsert_rows(
             self.session,
             Citation.__table__,
-            citation_rows,
+            valid_citation_rows,
             conflict_columns=["citing_paper_id", "cited_paper_id"],
         )
         self.session.commit()
-        summary.citations_upserted += len(citation_rows)
+        summary.citations_upserted += len(valid_citation_rows)
         citation_batch.clear()

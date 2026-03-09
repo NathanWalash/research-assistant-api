@@ -68,6 +68,7 @@ def test_ingestion_cli_prints_summary_and_forwards_args(monkeypatch, capsys) -> 
         "authors_upserted": 0,
         "authorships_upserted": 0,
         "citation_import_skipped": True,
+        "citations_skipped_missing_papers": 0,
         "citations_upserted": 0,
         "institutions_upserted": 0,
         "papers_upserted": 2,

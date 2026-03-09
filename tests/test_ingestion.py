@@ -220,7 +220,33 @@ def test_csv_ingestion_skips_invalid_citation_edge_rows(
 
     assert summary.citation_import_skipped is False
     assert summary.citations_upserted == 1
+    assert summary.citations_skipped_missing_papers == 0
     assert citation_count == 1
+
+
+def test_csv_ingestion_skips_citation_edges_for_missing_papers(
+    sqlite_database_url: str,
+) -> None:
+    engine = get_engine(sqlite_database_url)
+    Base.metadata.create_all(engine)
+
+    session_factory = get_session_factory(sqlite_database_url)
+    config = IngestionConfig(
+        csv_path=FIXTURES_DIR / "sample_openalex_leeds.csv",
+        citation_csv_path=FIXTURES_DIR / "sample_citation_edges_missing_papers.csv",
+        batch_size=10,
+    )
+
+    with session_factory() as session:
+        summary = CsvIngestionService(session).ingest(config)
+        citations = session.scalars(select(Citation)).all()
+
+    assert summary.citation_import_skipped is False
+    assert summary.citations_upserted == 1
+    assert summary.citations_skipped_missing_papers == 2
+    assert [
+        (citation.citing_paper_id, citation.cited_paper_id) for citation in citations
+    ] == [("https://openalex.org/W2", "https://openalex.org/W1")]
 
 
 def test_csv_ingestion_skips_rows_missing_required_paper_fields(

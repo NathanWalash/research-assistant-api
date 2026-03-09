@@ -30,6 +30,7 @@ def test_iter_dataset_paper_ids_deduplicates_and_skips_missing() -> None:
         "https://openalex.org/W1,Paper 1\n"
         ",Missing Id\n"
         "https://openalex.org/W1,Duplicate\n"
+        "https://openalex.org/W3,\n"
         "https://openalex.org/W2,Paper 2\n",
         encoding="utf-8",
     )
