@@ -6,6 +6,10 @@ from research_assistant_api.schemas.analytics import (
     PublicationTrendItem,
     TopicAnalyticsItem,
 )
+from research_assistant_api.schemas.annotations import (
+    AnnotationCreateRequest,
+    AnnotationResponse,
+)
 from research_assistant_api.schemas.auth import (
     AccessTokenResponse,
     AuthenticatedUser,
@@ -36,6 +40,8 @@ __all__ = [
     "AnalyticsPaperItem",
     "AccessTokenResponse",
     "AuthorDetail",
+    "AnnotationCreateRequest",
+    "AnnotationResponse",
     "AuthenticatedUser",
     "CollaborationPairItem",
     "InstitutionSummary",
