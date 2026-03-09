@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Analytics | Research Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/app/static/app.css" />
+    <script type="module" src="/app/static/analytics.js"></script>
+  </head>
+  <body data-page="analytics">
+    <div class="page-shell">
+      <header class="workspace-nav">
+        <a class="brand-block brand-link" href="/app">
+          <p class="brand-title">Research Assistant</p>
+          <p class="brand-subtitle">Analytics workspace</p>
+        </a>
+        <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
+          <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
+          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
+        </nav>
+        <div class="nav-meta">
+          <span class="session-badge" data-user-summary>Guest mode</span>
+          <a class="button secondary compact" data-auth-link href="/app/login">Sign in</a>
+          <button class="button ghost compact hidden" data-logout-button type="button">
+            Log out
+          </button>
+        </div>
+      </header>
+
+      <p id="page-status" class="global-status hidden" aria-live="polite"></p>
+
+      <main class="workspace-stack">
+        <section class="section-header">
+          <div>
+            <p class="section-eyebrow">Analytics</p>
+            <h1 class="page-title">Show influence, trends, and collaboration quickly.</h1>
+          </div>
+          <button id="refresh-all" class="button primary compact" type="button">
+            Refresh all
+          </button>
+        </section>
+
+        <section class="analytics-grid">
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Top papers</p>
+                <h2>Influence ranking</h2>
+              </div>
+            </div>
+            <form id="top-papers-form" class="stack-form compact-form">
+              <div class="inline-grid">
+                <label>
+                  <span>Topic</span>
+                  <input id="top-papers-topic" type="text" />
+                </label>
+                <label>
+                  <span>Year</span>
+                  <input id="top-papers-year" type="number" min="1900" max="2100" />
+                </label>
+              </div>
+              <button class="button secondary compact" type="submit">Run</button>
+            </form>
+            <div id="top-papers-results" class="result-list compact-list"></div>
+          </article>
+
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Topics</p>
+                <h2>Corpus coverage</h2>
+              </div>
+            </div>
+            <form id="topics-form" class="stack-form compact-form">
+              <label>
+                <span>Year</span>
+                <input id="topics-year" type="number" min="1900" max="2100" />
+              </label>
+              <button class="button secondary compact" type="submit">Run</button>
+            </form>
+            <div id="topics-results" class="result-list compact-list"></div>
+          </article>
+
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Trends</p>
+                <h2>Publication output by year</h2>
+              </div>
+            </div>
+            <form id="trends-form" class="stack-form compact-form">
+              <div class="inline-grid">
+                <label>
+                  <span>Start year</span>
+                  <input id="trends-start-year" type="number" min="1900" max="2100" />
+                </label>
+                <label>
+                  <span>End year</span>
+                  <input id="trends-end-year" type="number" min="1900" max="2100" />
+                </label>
+              </div>
+              <button class="button secondary compact" type="submit">Run</button>
+            </form>
+            <div id="trends-results" class="result-list compact-list"></div>
+          </article>
+
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Collaborations</p>
+                <h2>Co-authorship graph</h2>
+              </div>
+            </div>
+            <form id="collaborations-form" class="stack-form compact-form">
+              <label>
+                <span>Minimum shared papers</span>
+                <input id="collaborations-min-shared" type="number" min="1" value="2" />
+              </label>
+              <button class="button secondary compact" type="submit">Run</button>
+            </form>
+            <div id="collaborations-results" class="result-list compact-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
