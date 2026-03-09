@@ -52,9 +52,9 @@ code {
 }
 
 .page-shell {
-  width: min(1380px, calc(100vw - 32px));
+  width: min(1240px, calc(100vw - 40px));
   margin: 0 auto;
-  padding: 28px 0 40px;
+  padding: 24px 0 44px;
 }
 
 .workspace-stack,
@@ -70,7 +70,7 @@ code {
 .meta-grid,
 .link-list {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
 .content-grid,
@@ -101,16 +101,16 @@ code {
 
 .hero-card {
   display: grid;
-  grid-template-columns: 1.4fr minmax(320px, 430px);
-  gap: 28px;
-  padding: 30px;
+  grid-template-columns: minmax(0, 1.18fr) minmax(340px, 410px);
+  gap: 30px;
+  padding: 34px;
   border-radius: var(--radius-xl);
   background: linear-gradient(145deg, rgba(255, 252, 246, 0.92), rgba(255, 247, 238, 0.75));
   animation: rise 0.45s ease;
 }
 
 .auth-grid {
-  grid-template-columns: 1.2fr minmax(320px, 420px);
+  grid-template-columns: minmax(0, 1.08fr) minmax(330px, 410px);
 }
 
 .hero-copy h1,
@@ -125,15 +125,15 @@ code {
 
 .hero-copy h1 {
   margin: 0;
-  max-width: 12ch;
-  font-size: clamp(2.5rem, 4vw, 4.4rem);
-  line-height: 0.98;
+  max-width: 11ch;
+  font-size: clamp(2.7rem, 4vw, 4.6rem);
+  line-height: 0.94;
 }
 
 .page-title {
   margin: 0;
-  font-size: clamp(1.8rem, 2.4vw, 3rem);
-  line-height: 1.05;
+  font-size: clamp(1.95rem, 2.3vw, 3.1rem);
+  line-height: 1;
 }
 
 .section-header {
@@ -150,7 +150,7 @@ code {
 .section-header h2,
 .surface-card h2 {
   margin: 0;
-  font-size: clamp(1.4rem, 2vw, 2.1rem);
+  font-size: clamp(1.45rem, 1.9vw, 2.15rem);
 }
 
 .surface-card h3,
@@ -175,6 +175,11 @@ code {
 .global-status,
 .callout {
   color: var(--muted);
+}
+
+.hero-copy,
+.prose-block {
+  max-width: 62ch;
 }
 
 .hero-text,
@@ -224,9 +229,10 @@ code {
   display: grid;
   gap: 16px;
   align-self: start;
-  padding: 22px;
+  padding: 24px;
   border-radius: var(--radius-xl);
   background: rgba(255, 253, 248, 0.95);
+  min-height: 100%;
 }
 
 .workspace-nav {
@@ -237,7 +243,7 @@ code {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 14px 18px;
+  padding: 14px 20px;
   border-radius: 999px;
   background: rgba(255, 252, 246, 0.84);
 }
@@ -264,7 +270,7 @@ code {
 }
 
 .nav-link {
-  padding: 10px 14px;
+  padding: 10px 16px;
   border-radius: 999px;
   color: var(--muted);
   font-weight: 700;
@@ -349,15 +355,42 @@ code {
 }
 
 .surface-card {
-  padding: 22px;
+  padding: 26px;
   border-radius: var(--radius-xl);
   background: var(--surface);
+}
+
+.quick-grid > .surface-card,
+.content-grid > .surface-card,
+.workspace-grid > .surface-card,
+.analytics-grid > .surface-card {
+  height: 100%;
 }
 
 .emphasis-card {
   background:
     radial-gradient(circle at top right, rgba(24, 104, 209, 0.12), transparent 34%),
     linear-gradient(160deg, rgba(255, 252, 246, 0.96), rgba(247, 242, 233, 0.9));
+}
+
+.action-card {
+  min-height: 240px;
+  align-content: start;
+}
+
+.workspace-grid {
+  grid-template-columns: minmax(320px, 0.9fr) minmax(420px, 1.12fr);
+  align-items: start;
+}
+
+.content-grid {
+  grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+  align-items: start;
+}
+
+.analytics-grid {
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  align-items: start;
 }
 
 .surface-subsection {
@@ -435,7 +468,7 @@ textarea {
 .empty-state,
 .result-item,
 .link-list a {
-  padding: 12px 14px;
+  padding: 14px 16px;
 }
 
 .global-status.hidden,
@@ -476,7 +509,7 @@ textarea {
 
 .metric-card dd {
   font-family: "Fraunces", Georgia, serif;
-  font-size: 1.2rem;
+  font-size: 1.35rem;
 }
 
 .result-item h4,
@@ -495,12 +528,12 @@ textarea {
 }
 
 .result-item h4 {
-  font-size: 1rem;
+  font-size: 1.04rem;
   line-height: 1.35;
 }
 
 .compact-list .result-item {
-  padding: 12px 13px;
+  padding: 13px 14px;
 }
 
 .empty-state {
@@ -527,6 +560,19 @@ textarea {
 
 .auth-shell {
   padding-top: 60px;
+}
+
+.card-header + .stack-form,
+.card-header + .result-list,
+.card-header + .summary-list,
+.card-header + .link-list,
+.card-header + .prose-block {
+  margin-top: 16px;
+}
+
+.toolbar,
+.result-actions {
+  margin-top: 16px;
 }
 
 [data-authenticated-only="false"] {
