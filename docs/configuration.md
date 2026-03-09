@@ -23,3 +23,4 @@ Environment variables use the `RESEARCH_API_` prefix.
 - Production rejects the placeholder JWT secret.
 - Production also requires a JWT secret with at least `32` characters.
 - The local Docker Compose file still uses development defaults and is not production deployment config.
+- Railway-style `postgres://...` and `postgresql://...` URLs are normalized automatically to `postgresql+psycopg://...` for SQLAlchemy.

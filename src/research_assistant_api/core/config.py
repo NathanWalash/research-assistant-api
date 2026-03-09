@@ -1,12 +1,22 @@
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
+from urllib.parse import urlsplit, urlunsplit
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_JWT_SECRET_KEY = "change-this-development-secret"
 MIN_JWT_SECRET_KEY_LENGTH = 32
+
+
+def normalize_database_url(database_url: str) -> str:
+    parts = urlsplit(database_url)
+    if parts.scheme == "postgres":
+        return urlunsplit(("postgresql+psycopg", parts.netloc, parts.path, parts.query, parts.fragment))
+    if parts.scheme == "postgresql":
+        return urlunsplit(("postgresql+psycopg", parts.netloc, parts.path, parts.query, parts.fragment))
+    return database_url
 
 
 class Settings(BaseSettings):
@@ -37,6 +47,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_runtime_constraints(self) -> "Settings":
+        self.database_url = normalize_database_url(self.database_url)
+
         if self.environment != "production":
             return self
 

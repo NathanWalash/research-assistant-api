@@ -5,6 +5,7 @@ from research_assistant_api.core.config import (
     DEFAULT_JWT_SECRET_KEY,
     MIN_JWT_SECRET_KEY_LENGTH,
     Settings,
+    normalize_database_url,
 )
 
 
@@ -44,3 +45,27 @@ def test_settings_allow_long_production_secret() -> None:
     )
 
     assert settings.environment == "production"
+
+
+def test_normalize_database_url_handles_railway_postgres_aliases() -> None:
+    assert (
+        normalize_database_url("postgres://user:pass@host:5432/db")
+        == "postgresql+psycopg://user:pass@host:5432/db"
+    )
+    assert (
+        normalize_database_url("postgresql://user:pass@host:5432/db?sslmode=require")
+        == "postgresql+psycopg://user:pass@host:5432/db?sslmode=require"
+    )
+    assert (
+        normalize_database_url("sqlite+pysqlite:///file:test.db")
+        == "sqlite+pysqlite:///file:test.db"
+    )
+
+
+def test_settings_normalize_database_url() -> None:
+    settings = Settings(
+        environment="development",
+        database_url="postgres://user:pass@host:5432/db",
+    )
+
+    assert settings.database_url == "postgresql+psycopg://user:pass@host:5432/db"

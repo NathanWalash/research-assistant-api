@@ -11,6 +11,7 @@ The current MVP focuses on semantic discovery, metadata analytics, and research 
 - [Architecture](docs/architecture.md)
 - [API Examples](docs/api-examples.md)
 - [Operations](docs/operations.md)
+- [Railway Deployment](docs/railway-deployment.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Demo Flow](docs/demo-flow.md)
 
