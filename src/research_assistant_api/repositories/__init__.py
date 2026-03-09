@@ -9,6 +9,7 @@ from research_assistant_api.repositories.project_repository import ProjectReposi
 from research_assistant_api.repositories.reading_list_repository import (
     ReadingListRepository,
 )
+from research_assistant_api.repositories.similarity_repository import SimilarityRepository
 from research_assistant_api.repositories.topic_repository import TopicRepository
 from research_assistant_api.repositories.user_repository import UserRepository
 
@@ -20,6 +21,7 @@ __all__ = [
     "PaperRepository",
     "ProjectRepository",
     "ReadingListRepository",
+    "SimilarityRepository",
     "TopicRepository",
     "UserRepository",
 ]

@@ -19,6 +19,10 @@ from research_assistant_api.services.reading_list import (
     ReadingListItemNotFoundError,
     ReadingListService,
 )
+from research_assistant_api.services.similarity import (
+    PaperEmbeddingNotAvailableError,
+    SimilarityService,
+)
 
 __all__ = [
     "AnalyticsService",
@@ -33,6 +37,8 @@ __all__ = [
     "ProjectService",
     "ReadingListItemNotFoundError",
     "ReadingListService",
+    "PaperEmbeddingNotAvailableError",
+    "SimilarityService",
     "TopicService",
     "UserAlreadyExistsError",
 ]
