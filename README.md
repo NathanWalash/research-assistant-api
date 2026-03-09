@@ -145,6 +145,49 @@ Paper titles and abstracts are stored without importer-side truncation so the fu
 
 The same principle applies to DOI metadata: DOIs are retained when present, but they are not enforced as globally unique because the Leeds export contains repeated DOI values across different OpenAlex work IDs.
 
+## Citation Graph Export
+
+The main Leeds CSV does not contain explicit citation edge pairs, so citation-graph traversal is only possible after an enrichment step.
+
+The repo now includes an optional export command that uses `openalexnet`'s OpenAlex client with the exact Leeds work IDs already present in the dataset:
+
+```bash
+research-assistant-export-citation-graph
+```
+
+Useful options:
+
+- `research-assistant-export-citation-graph --limit 100`
+- `research-assistant-export-citation-graph --batch-size 50`
+- `research-assistant-export-citation-graph --rate-interval 0.2`
+- `research-assistant-export-citation-graph --reset`
+- `research-assistant-export-citation-graph --output-path .tmp/leeds_citation_edges.csv`
+
+The export workflow:
+
+1. reads the Leeds work IDs from the dataset CSV
+2. batches them into exact `openalex:` filter queries for OpenAlex
+3. fetches those works batch-by-batch and appends them to a JSONL audit file
+4. writes Leeds-to-Leeds `citing_paper_id,cited_paper_id` edges incrementally
+5. records resumable progress after every completed batch
+
+Output files are written under `.tmp/` by default:
+
+- `.tmp/leeds_citation_queries.csv`
+- `.tmp/leeds_citation_works.jsonl`
+- `.tmp/leeds_citation_edges.csv`
+- `.tmp/leeds_citation_progress.json`
+
+If a long run is interrupted, rerunning the same command will resume from the existing JSONL file and continue fetching the remaining Leeds work batches. Use `--reset` only when you want to discard the current JSONL, edge CSV, and progress state and start again from scratch.
+
+This produces a real Leeds-to-Leeds citation subgraph. It is still a subset graph, so citation neighbourhoods and shortest paths are only complete within the Leeds corpus, not across all OpenAlex works.
+
+If you later want to load those edges into PostgreSQL, rerun ingestion with the exported edge file:
+
+```bash
+research-assistant-ingest --citation-csv-path .tmp/leeds_citation_edges.csv
+```
+
 ## Embeddings
 
 Paper embeddings are generated from:
@@ -193,6 +236,8 @@ It does not currently support true citation-graph operations such as:
 - bridge-paper discovery through citation edges
 
 Those graph features remain possible in the architecture, but only after ingesting a second source that contains explicit citation edge pairs.
+
+That enrichment source can now be generated from OpenAlex for the exact Leeds work set, but the resulting graph remains a Leeds-only induced subgraph rather than the full global citation network.
 
 For the report and presentation, the honest framing is:
 
@@ -270,5 +315,5 @@ The collaboration endpoint exposes co-authorship edges between authors. This is 
 ## Future Extension
 
 - citation graph exploration via supplementary citation-edge ingestion
-- shortest citation path and neighbourhood endpoints once citation edges are available
+- shortest citation path and neighbourhood endpoints once citation edges are available in the local citation-edge table
 - hybrid recommendation scoring that includes citation proximity once citation edges are available
