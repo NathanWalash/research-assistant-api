@@ -21,7 +21,12 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
     ) from error
 
 
-@router.get("/{author_id:path}/papers", response_model=list[PaperSummary])
+@router.get(
+    "/{author_id:path}/papers",
+    response_model=list[PaperSummary],
+    summary="List author papers",
+    description="List papers associated with a specific author id.",
+)
 def list_author_papers(
     author_id: str,
     session: Annotated[Session, Depends(get_db)],
@@ -35,7 +40,12 @@ def list_author_papers(
         _raise_not_found(error)
 
 
-@router.get("/{author_id:path}", response_model=AuthorDetail)
+@router.get(
+    "/{author_id:path}",
+    response_model=AuthorDetail,
+    summary="Get author",
+    description="Return author metadata and affiliation details.",
+)
 def get_author(
     author_id: str, session: Annotated[Session, Depends(get_db)]
 ) -> AuthorDetail:

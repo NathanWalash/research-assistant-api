@@ -68,7 +68,13 @@ def _raise_not_found(error: ProjectNotFoundError) -> None:
     ) from error
 
 
-@router.post("", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ProjectResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create project",
+    description="Create a user-owned research project.",
+)
 def create_project(
     payload: ProjectCreateRequest,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -78,7 +84,12 @@ def create_project(
     return service.create_project(current_user, payload)
 
 
-@router.get("", response_model=list[ProjectResponse])
+@router.get(
+    "",
+    response_model=list[ProjectResponse],
+    summary="List projects",
+    description="List projects owned by the authenticated user.",
+)
 def list_projects(
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_db)],
@@ -91,6 +102,8 @@ def list_projects(
     "/{project_id}/reading-list",
     response_model=ReadingListItemResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Add reading-list item",
+    description="Add a paper to a project reading list.",
 )
 def add_reading_list_item(
     project_id: str,
@@ -113,7 +126,12 @@ def add_reading_list_item(
         ) from error
 
 
-@router.get("/{project_id}/reading-list", response_model=list[ReadingListItemResponse])
+@router.get(
+    "/{project_id}/reading-list",
+    response_model=list[ReadingListItemResponse],
+    summary="List reading-list items",
+    description="List reading-list items for a user-owned project.",
+)
 def list_reading_list_items(
     project_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -129,6 +147,8 @@ def list_reading_list_items(
 @router.get(
     "/{project_id}/recommendations",
     response_model=list[ProjectRecommendationResponse],
+    summary="List project recommendations",
+    description="Recommend papers from reading-list context using semantic, citation, or hybrid scoring.",
 )
 def list_project_recommendations(
     project_id: str,
@@ -168,7 +188,12 @@ def list_project_recommendations(
         ) from error
 
 
-@router.get("/{project_id}", response_model=ProjectResponse)
+@router.get(
+    "/{project_id}",
+    response_model=ProjectResponse,
+    summary="Get project",
+    description="Return a single project owned by the authenticated user.",
+)
 def get_project(
     project_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
@@ -181,7 +206,12 @@ def get_project(
         _raise_not_found(error)
 
 
-@router.patch("/{project_id}", response_model=ProjectResponse)
+@router.patch(
+    "/{project_id}",
+    response_model=ProjectResponse,
+    summary="Update project",
+    description="Update the title or description of a user-owned project.",
+)
 def update_project(
     project_id: str,
     payload: ProjectUpdateRequest,
@@ -195,7 +225,12 @@ def update_project(
         _raise_not_found(error)
 
 
-@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{project_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete project",
+    description="Delete a user-owned project and its dependent workflow records.",
+)
 def delete_project(
     project_id: str,
     current_user: Annotated[User, Depends(get_current_user)],

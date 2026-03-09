@@ -38,6 +38,8 @@ def _build_authenticated_user(user: User) -> AuthenticatedUser:
     "/register",
     response_model=AccessTokenResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Register user",
+    description="Create a user account and return a bearer access token.",
 )
 def register(
     payload: UserRegistrationRequest,
@@ -53,7 +55,12 @@ def register(
         ) from error
 
 
-@router.post("/login", response_model=AccessTokenResponse)
+@router.post(
+    "/login",
+    response_model=AccessTokenResponse,
+    summary="Log in user",
+    description="Authenticate a user and return a bearer access token.",
+)
 def login(
     payload: UserLoginRequest,
     session: Annotated[Session, Depends(get_db)],
@@ -68,7 +75,12 @@ def login(
         ) from error
 
 
-@router.get("/me", response_model=AuthenticatedUser)
+@router.get(
+    "/me",
+    response_model=AuthenticatedUser,
+    summary="Get current user",
+    description="Return the authenticated user linked to the bearer token.",
+)
 def get_authenticated_user(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> AuthenticatedUser:

@@ -38,7 +38,12 @@ def _raise_not_found(error: ReadingListItemNotFoundError) -> None:
     ) from error
 
 
-@router.patch("/{item_id}", response_model=ReadingListItemResponse)
+@router.patch(
+    "/{item_id}",
+    response_model=ReadingListItemResponse,
+    summary="Update reading-list item",
+    description="Update reading-list priority or notes for an item owned by the authenticated user.",
+)
 def update_reading_list_item(
     item_id: str,
     payload: ReadingListItemUpdateRequest,
@@ -52,7 +57,12 @@ def update_reading_list_item(
         _raise_not_found(error)
 
 
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete reading-list item",
+    description="Delete a reading-list item owned by the authenticated user.",
+)
 def delete_reading_list_item(
     item_id: str,
     current_user: Annotated[User, Depends(get_current_user)],

@@ -53,6 +53,7 @@ jobs:
 
     env:
       RESEARCH_API_DATABASE_URL: postgresql+psycopg://research_user:research_password@localhost:5432/research_assistant
+      RESEARCH_API_RUN_POSTGRES_TESTS: "1"
 
     steps:
       - name: Check out repository
@@ -98,3 +99,37 @@ jobs:
               raise SystemExit(f"Missing tables: {sorted(missing)}")
           print("PostgreSQL schema verified")
           PY
+
+      - name: Run PostgreSQL integration tests
+        run: python -m pytest tests/test_postgres_integration.py
+
+  docker-smoke:
+    name: Verify Docker app startup
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Start API stack
+        run: docker compose --profile app up -d --build
+
+      - name: Wait for API health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose --profile app logs api --tail 200
+          exit 1
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --profile app logs api --tail 200
+
+      - name: Stop API stack
+        if: always()
+        run: docker compose --profile app down -v

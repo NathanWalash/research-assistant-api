@@ -7,15 +7,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY requirements.txt requirements.txt
+COPY pyproject.toml pyproject.toml
+COPY README.md README.md
+COPY src src
 
 RUN python -m pip install --upgrade pip \
-    && python -m pip install -r requirements.txt
+    && python -m pip install .
 
 COPY alembic alembic
 COPY alembic.ini alembic.ini
-COPY README.md README.md
-COPY src src
 COPY docker docker
 
 RUN chmod +x docker/entrypoint.sh

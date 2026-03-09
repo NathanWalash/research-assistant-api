@@ -21,7 +21,12 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
     ) from error
 
 
-@router.get("", response_model=list[TopicListItem])
+@router.get(
+    "",
+    response_model=list[TopicListItem],
+    summary="List topics",
+    description="List topics available in the local Leeds corpus subset.",
+)
 def list_topics(
     session: Annotated[Session, Depends(get_db)],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
@@ -31,7 +36,12 @@ def list_topics(
     return service.list_topics(limit=limit, offset=offset)
 
 
-@router.get("/{topic_id}/papers", response_model=list[PaperSummary])
+@router.get(
+    "/{topic_id}/papers",
+    response_model=list[PaperSummary],
+    summary="List topic papers",
+    description="List papers assigned to a topic id.",
+)
 def list_topic_papers(
     topic_id: str,
     session: Annotated[Session, Depends(get_db)],
