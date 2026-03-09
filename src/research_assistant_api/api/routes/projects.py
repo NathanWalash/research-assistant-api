@@ -1,4 +1,5 @@
 from typing import Annotated
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
@@ -11,6 +12,7 @@ from research_assistant_api.repositories.project_repository import ProjectReposi
 from research_assistant_api.repositories.reading_list_repository import (
     ReadingListRepository,
 )
+from research_assistant_api.repositories.citation_repository import CitationRepository
 from research_assistant_api.repositories.similarity_repository import SimilarityRepository
 from research_assistant_api.schemas.projects import (
     ProjectCreateRequest,
@@ -32,6 +34,7 @@ from research_assistant_api.services import (
     ProjectService,
     ReadingListService,
     RecommendationService,
+    InvalidRecommendationWeightsError,
 )
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -54,6 +57,7 @@ def _build_recommendation_service(session: Session) -> RecommendationService:
         project_repository=ProjectRepository(session),
         reading_list_repository=ReadingListRepository(session),
         similarity_repository=SimilarityRepository(session),
+        citation_repository=CitationRepository(session),
     )
 
 
@@ -130,6 +134,12 @@ def list_project_recommendations(
     project_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     session: Annotated[Session, Depends(get_db)],
+    scoring_mode: Annotated[
+        Literal["semantic", "citation", "hybrid"],
+        Query(alias="mode"),
+    ] = "hybrid",
+    semantic_weight: Annotated[float | None, Query(ge=0, le=1)] = None,
+    citation_weight: Annotated[float | None, Query(ge=0, le=1)] = None,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
     offset: Annotated[int, Query(ge=0)] = 0,
 ) -> list[ProjectRecommendationResponse]:
@@ -138,6 +148,9 @@ def list_project_recommendations(
         return service.list_project_recommendations(
             current_user,
             project_id,
+            scoring_mode=scoring_mode,
+            semantic_weight=semantic_weight,
+            citation_weight=citation_weight,
             limit=limit,
             offset=offset,
         )
@@ -146,6 +159,11 @@ def list_project_recommendations(
     except ProjectRecommendationsUnavailableError as error:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
+            detail=str(error),
+        ) from error
+    except InvalidRecommendationWeightsError as error:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail=str(error),
         ) from error
 

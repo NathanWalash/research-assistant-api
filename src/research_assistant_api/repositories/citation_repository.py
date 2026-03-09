@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from research_assistant_api.models import Citation, Paper
@@ -76,3 +76,44 @@ class CitationRepository:
             .where(Paper.id.in_(paper_ids))
         )
         return list(self.session.scalars(statement).all())
+
+    def list_adjacent_paper_ids(
+        self,
+        source_paper_ids: Sequence[str],
+        *,
+        exclude_paper_ids: set[str],
+    ) -> set[str]:
+        if not source_paper_ids:
+            return set()
+
+        statement = select(Citation.citing_paper_id, Citation.cited_paper_id).where(
+            or_(
+                Citation.citing_paper_id.in_(source_paper_ids),
+                Citation.cited_paper_id.in_(source_paper_ids),
+            )
+        )
+        adjacent_paper_ids: set[str] = set()
+        for citing_paper_id, cited_paper_id in self.session.execute(statement):
+            if citing_paper_id not in exclude_paper_ids:
+                adjacent_paper_ids.add(citing_paper_id)
+            if cited_paper_id not in exclude_paper_ids:
+                adjacent_paper_ids.add(cited_paper_id)
+        return adjacent_paper_ids
+
+    def list_connections_between(
+        self,
+        source_paper_ids: Sequence[str],
+        candidate_paper_ids: Sequence[str],
+    ) -> list[tuple[str, str]]:
+        if not source_paper_ids or not candidate_paper_ids:
+            return []
+
+        statement = select(Citation.citing_paper_id, Citation.cited_paper_id).where(
+            or_(
+                Citation.citing_paper_id.in_(source_paper_ids)
+                & Citation.cited_paper_id.in_(candidate_paper_ids),
+                Citation.citing_paper_id.in_(candidate_paper_ids)
+                & Citation.cited_paper_id.in_(source_paper_ids),
+            )
+        )
+        return list(self.session.execute(statement).all())

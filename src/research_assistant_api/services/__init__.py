@@ -24,6 +24,7 @@ from research_assistant_api.services.reading_list import (
     ReadingListService,
 )
 from research_assistant_api.services.recommendations import (
+    InvalidRecommendationWeightsError,
     ProjectRecommendationsUnavailableError,
     RecommendationService,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "CitationPathNotFoundError",
     "DiscoveryNotFoundError",
     "DuplicateReadingListItemError",
+    "InvalidRecommendationWeightsError",
     "PaperService",
     "ProjectNotFoundError",
     "ProjectRecommendationsUnavailableError",
