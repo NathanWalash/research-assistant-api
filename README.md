@@ -16,6 +16,8 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - analytics endpoints for top papers, topic distribution, publication trends, and co-authorship pairs
 - JWT-based authentication endpoints
 - protected project CRUD endpoints
+- protected reading list endpoints
+- authenticated annotation endpoint
 - smoke and endpoint tests
 
 ## Local Development
@@ -56,6 +58,8 @@ The current tests cover:
 - analytics API read endpoints
 - authentication endpoints and bearer-token access control
 - protected project CRUD workflows
+- protected reading list workflows
+- authenticated annotation creation
 
 ## Continuous Integration
 
@@ -127,7 +131,7 @@ Those graph features remain possible in the architecture, but only after ingesti
 - corpus analytics
 - JWT authentication
 - project CRUD workflows
-- reading list and annotation workflows still to be implemented
+- reading list and annotation workflows
 - semantic similarity and recommendations as the next planned extension
 
 ## Implemented Authentication Endpoints
@@ -147,6 +151,21 @@ Authentication uses bearer tokens signed with the JWT settings defined in `.env.
 - `DELETE /projects/{id}`
 
 Project routes are scoped to the authenticated user, so users can only see and modify their own projects.
+
+## Implemented Reading List Endpoints
+
+- `POST /projects/{id}/reading-list`
+- `GET /projects/{id}/reading-list`
+- `PATCH /reading-list-items/{id}`
+- `DELETE /reading-list-items/{id}`
+
+Reading list items are scoped through the owning project, so users can only manage items in their own projects.
+
+## Implemented Annotation Endpoint
+
+- `POST /papers/{id}/annotations`
+
+Annotations currently support authenticated creation. Listing and editing annotations can be added later if needed.
 
 ## Implemented Discovery Endpoints
 
