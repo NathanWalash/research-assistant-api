@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Discover | Research Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/app/static/app.css" />
+    <script type="module" src="/app/static/discover.js"></script>
+  </head>
+  <body data-page="discover">
+    <div class="page-shell">
+      <header class="workspace-nav">
+        <a class="brand-block brand-link" href="/app">
+          <p class="brand-title">Research Assistant</p>
+          <p class="brand-subtitle">Discovery workspace</p>
+        </a>
+        <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
+          <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
+          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
+        </nav>
+        <div class="nav-meta">
+          <span class="session-badge" data-user-summary>Guest mode</span>
+          <a class="button secondary compact" data-auth-link href="/app/login">Sign in</a>
+          <button class="button ghost compact hidden" data-logout-button type="button">
+            Log out
+          </button>
+        </div>
+      </header>
+
+      <p id="page-status" class="global-status hidden" aria-live="polite"></p>
+
+      <main class="workspace-stack">
+        <section class="section-header">
+          <div>
+            <p class="section-eyebrow">Discovery</p>
+            <h1 class="page-title">Search the Leeds corpus and inspect one paper deeply.</h1>
+          </div>
+          <div class="button-row">
+            <a class="button ghost compact" href="/openapi.json" target="_blank" rel="noreferrer">
+              OpenAPI
+            </a>
+          </div>
+        </section>
+
+        <section class="workspace-grid">
+          <article class="surface-card">
+            <h2>Search papers</h2>
+            <form id="search-form" class="stack-form">
+              <label>
+                <span>Query</span>
+                <input id="search-query" type="text" placeholder="knowledge graphs" />
+              </label>
+              <div class="inline-grid">
+                <label>
+                  <span>Topic</span>
+                  <input id="search-topic" type="text" placeholder="Machine Learning" />
+                </label>
+                <label>
+                  <span>Year</span>
+                  <input id="search-year" type="number" min="1900" max="2100" />
+                </label>
+                <label>
+                  <span>Min citations</span>
+                  <input id="search-citations" type="number" min="0" />
+                </label>
+              </div>
+              <div class="button-row">
+                <button class="button primary" type="submit">Run search</button>
+                <button class="button ghost" id="clear-search" type="button">Clear</button>
+              </div>
+            </form>
+            <div id="search-results" class="result-list"></div>
+          </article>
+
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Selected paper</p>
+                <h2 id="paper-title">Choose a paper from the search results</h2>
+              </div>
+              <span id="paper-topic-pill" class="pill hidden"></span>
+            </div>
+            <div id="paper-meta" class="meta-grid"></div>
+            <div id="paper-abstract" class="prose-block empty-state">
+              Paper detail will appear here after you inspect a search result.
+            </div>
+            <div id="paper-authors" class="result-list compact-list"></div>
+
+            <section class="toolbar">
+              <button id="load-similar" class="button secondary compact" type="button">
+                Load similar papers
+              </button>
+              <button id="load-citations" class="button secondary compact" type="button">
+                Load citation neighbourhood
+              </button>
+            </section>
+
+            <div class="split-columns">
+              <section>
+                <h3>Similar papers</h3>
+                <div id="similar-results" class="result-list compact-list"></div>
+              </section>
+              <section>
+                <h3>Citation neighbourhood</h3>
+                <div id="citation-results" class="result-list compact-list"></div>
+              </section>
+            </div>
+
+            <section class="surface-subsection">
+              <div class="card-header">
+                <div>
+                  <h3>Citation path explorer</h3>
+                  <p class="helper-text">
+                    Find a directed shortest path inside the Leeds citation subgraph.
+                  </p>
+                </div>
+              </div>
+              <form id="citation-path-form" class="stack-form">
+                <label>
+                  <span>Target paper ID</span>
+                  <input
+                    id="citation-target-id"
+                    type="text"
+                    placeholder="https://openalex.org/W1234567890"
+                  />
+                </label>
+                <label>
+                  <span>Max depth</span>
+                  <input id="citation-max-depth" type="number" min="1" max="12" value="6" />
+                </label>
+                <button class="button secondary compact" type="submit">Find path</button>
+              </form>
+              <div id="citation-path-results" class="result-list compact-list"></div>
+            </section>
+          </article>
+        </section>
+
+        <section class="workspace-grid">
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Save to project</p>
+                <h2>Capture the selected paper into a workflow.</h2>
+              </div>
+            </div>
+            <div class="callout" data-authenticated-only="false">
+              Sign in to save selected papers directly into a project reading list.
+            </div>
+            <form
+              id="save-to-project-form"
+              class="stack-form hidden"
+              data-authenticated-only="true"
+            >
+              <label>
+                <span>Project</span>
+                <select id="save-project-id"></select>
+              </label>
+              <div class="inline-grid">
+                <label>
+                  <span>Priority</span>
+                  <select id="save-priority">
+                    <option value="low">Low</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </label>
+              </div>
+              <label>
+                <span>Notes</span>
+                <textarea
+                  id="save-notes"
+                  rows="3"
+                  placeholder="Why does this paper matter to the project?"
+                ></textarea>
+              </label>
+              <button class="button primary" type="submit">Add selected paper</button>
+            </form>
+          </article>
+
+          <article class="surface-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Private annotations</p>
+                <h2>Capture paper-level notes.</h2>
+              </div>
+            </div>
+            <div class="callout" data-authenticated-only="false">
+              Sign in to create, edit, and delete your annotations.
+            </div>
+            <form
+              id="annotation-form"
+              class="stack-form hidden"
+              data-authenticated-only="true"
+            >
+              <input id="annotation-id" type="hidden" />
+              <label>
+                <span>Annotation text</span>
+                <textarea
+                  id="annotation-text"
+                  rows="4"
+                  placeholder="Record why this paper matters, gaps to check, or methods to compare."
+                ></textarea>
+              </label>
+              <div class="button-row">
+                <button class="button primary" type="submit" id="annotation-submit">
+                  Save annotation
+                </button>
+                <button class="button ghost hidden" type="button" id="annotation-cancel">
+                  Cancel edit
+                </button>
+              </div>
+            </form>
+            <div id="annotation-results" class="result-list compact-list"></div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
