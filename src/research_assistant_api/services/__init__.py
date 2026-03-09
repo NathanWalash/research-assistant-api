@@ -1,6 +1,7 @@
 """Service layer helpers for API endpoints."""
 
 from research_assistant_api.services.analytics import AnalyticsService
+from research_assistant_api.services.annotations import AnnotationService
 from research_assistant_api.services.auth import (
     AuthenticationError,
     AuthService,
@@ -21,6 +22,7 @@ from research_assistant_api.services.reading_list import (
 
 __all__ = [
     "AnalyticsService",
+    "AnnotationService",
     "AuthenticationError",
     "AuthService",
     "AuthorService",
