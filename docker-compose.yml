@@ -10,6 +10,25 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U research_user -d research_assistant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    profiles: ["app"]
+    build: .
+    container_name: research-assistant-api
+    environment:
+      RESEARCH_API_DATABASE_URL: postgresql+psycopg://research_user:research_password@db:5432/research_assistant
+      RESEARCH_API_ENVIRONMENT: development
+      RESEARCH_API_JWT_SECRET_KEY: change-this-development-secret
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   postgres_data:

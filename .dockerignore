@@ -1,0 +1,14 @@
+.env
+.git
+.github
+.pytest_artifacts
+.pytest_cache
+.pytest_tmp
+.ruff_cache
+.tmp
+.venv
+.vscode
+__pycache__/
+*.pyc
+tests/
+UniOfLeedsArticles2018_to_Present.csv
