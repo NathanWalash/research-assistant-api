@@ -59,7 +59,12 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
     ) from error
 
 
-@router.get("/search", response_model=list[PaperSummary])
+@router.get(
+    "/search",
+    response_model=list[PaperSummary],
+    summary="Search papers",
+    description="Search the local Leeds corpus by free text, topic, year, and citation threshold.",
+)
 def search_papers(
     session: Annotated[Session, Depends(get_db)],
     query: str | None = None,
@@ -84,6 +89,8 @@ def search_papers(
     "/{paper_id:path}/annotations",
     response_model=AnnotationResponse,
     status_code=status.HTTP_201_CREATED,
+    summary="Create paper annotation",
+    description="Create a private annotation for the authenticated user on a paper.",
 )
 def create_annotation(
     paper_id: str,
@@ -98,7 +105,37 @@ def create_annotation(
         _raise_not_found(error)
 
 
-@router.get("/{paper_id:path}/similar", response_model=list[SimilarPaperResponse])
+@router.get(
+    "/{paper_id:path}/annotations",
+    response_model=list[AnnotationResponse],
+    summary="List paper annotations",
+    description="List the authenticated user's annotations for a paper.",
+)
+def list_annotations(
+    paper_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 20,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[AnnotationResponse]:
+    service = _build_annotation_service(session)
+    try:
+        return service.list_annotations(
+            current_user,
+            paper_id,
+            limit=limit,
+            offset=offset,
+        )
+    except DiscoveryNotFoundError as error:
+        _raise_not_found(error)
+
+
+@router.get(
+    "/{paper_id:path}/similar",
+    response_model=list[SimilarPaperResponse],
+    summary="List similar papers",
+    description="Return semantically similar papers using stored embeddings.",
+)
 def list_similar_papers(
     paper_id: str,
     session: Annotated[Session, Depends(get_db)],
@@ -124,6 +161,8 @@ def list_similar_papers(
 @router.get(
     "/{paper_id:path}/citations",
     response_model=CitationNeighborhoodResponse,
+    summary="Get citation neighbourhood",
+    description="Return papers cited by, and citing, the requested paper within the Leeds citation subgraph.",
 )
 def get_citation_neighborhood(
     paper_id: str,
@@ -145,6 +184,8 @@ def get_citation_neighborhood(
 @router.get(
     "/{paper_id:path}/path/{target_paper_id:path}",
     response_model=CitationPathResponse,
+    summary="Get citation path",
+    description="Find a directed shortest citation path within the Leeds citation subgraph.",
 )
 def get_citation_path(
     paper_id: str,
@@ -168,7 +209,12 @@ def get_citation_path(
         ) from error
 
 
-@router.get("/{paper_id:path}", response_model=PaperDetail)
+@router.get(
+    "/{paper_id:path}",
+    response_model=PaperDetail,
+    summary="Get paper",
+    description="Return a paper record with metadata, authorship, topic, and citation count.",
+)
 def get_paper(
     paper_id: str, session: Annotated[Session, Depends(get_db)]
 ) -> PaperDetail:

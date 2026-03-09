@@ -7,6 +7,10 @@ class AnnotationCreateRequest(BaseModel):
     text: str = Field(min_length=1, max_length=5000)
 
 
+class AnnotationUpdateRequest(BaseModel):
+    text: str = Field(min_length=1, max_length=5000)
+
+
 class AnnotationResponse(BaseModel):
     id: str
     user_id: str

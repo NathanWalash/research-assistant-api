@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from research_assistant_api.api.routes.analytics import router as analytics_router
+from research_assistant_api.api.routes.annotations import router as annotations_router
 from research_assistant_api.api.routes.auth import router as auth_router
 from research_assistant_api.api.routes.authors import router as authors_router
 from research_assistant_api.api.routes.health import router as health_router
@@ -15,6 +16,7 @@ api_router = APIRouter()
 api_router.include_router(health_router)
 api_router.include_router(auth_router)
 api_router.include_router(analytics_router)
+api_router.include_router(annotations_router)
 api_router.include_router(papers_router)
 api_router.include_router(projects_router)
 api_router.include_router(reading_list_items_router)
@@ -22,6 +24,11 @@ api_router.include_router(authors_router)
 api_router.include_router(topics_router)
 
 
-@api_router.get("/", tags=["meta"])
+@api_router.get(
+    "/",
+    tags=["meta"],
+    summary="Get service metadata",
+    description="Return a minimal service identifier for quick smoke checks.",
+)
 def read_root() -> dict[str, str]:
     return {"service": "research-assistant-api"}

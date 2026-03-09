@@ -62,6 +62,87 @@ def test_create_annotation_returns_saved_annotation(client: TestClient) -> None:
     assert body["text"] == "Important note"
 
 
+def test_list_annotations_returns_only_current_users_annotations(
+    client: TestClient,
+) -> None:
+    owner_headers = _register_user(client, "annotator@example.com")
+    other_headers = _register_user(client, "other@example.com")
+    client.post(
+        "/papers/https://openalex.org/W1/annotations",
+        json={"text": "Owner note"},
+        headers=owner_headers,
+    )
+    client.post(
+        "/papers/https://openalex.org/W1/annotations",
+        json={"text": "Other note"},
+        headers=other_headers,
+    )
+
+    response = client.get(
+        "/papers/https://openalex.org/W1/annotations",
+        headers=owner_headers,
+    )
+
+    assert response.status_code == 200
+    assert [annotation["text"] for annotation in response.json()] == ["Owner note"]
+
+
+def test_annotation_detail_update_and_delete_workflow(client: TestClient) -> None:
+    headers = _register_user(client, "annotator@example.com")
+    create_response = client.post(
+        "/papers/https://openalex.org/W1/annotations",
+        json={"text": "Initial note"},
+        headers=headers,
+    )
+    annotation_id = create_response.json()["id"]
+
+    detail_response = client.get(f"/annotations/{annotation_id}", headers=headers)
+    update_response = client.patch(
+        f"/annotations/{annotation_id}",
+        json={"text": " Updated note "},
+        headers=headers,
+    )
+    delete_response = client.delete(f"/annotations/{annotation_id}", headers=headers)
+    detail_after_delete = client.get(f"/annotations/{annotation_id}", headers=headers)
+
+    assert detail_response.status_code == 200
+    assert detail_response.json()["text"] == "Initial note"
+    assert update_response.status_code == 200
+    assert update_response.json()["text"] == "Updated note"
+    assert delete_response.status_code == 204
+    assert detail_after_delete.status_code == 404
+
+
+def test_annotation_routes_enforce_authentication_and_ownership(
+    client: TestClient,
+) -> None:
+    owner_headers = _register_user(client, "owner@example.com")
+    other_headers = _register_user(client, "other@example.com")
+    create_response = client.post(
+        "/papers/https://openalex.org/W1/annotations",
+        json={"text": "Owner note"},
+        headers=owner_headers,
+    )
+    annotation_id = create_response.json()["id"]
+
+    unauthenticated_response = client.get("/papers/https://openalex.org/W1/annotations")
+    other_detail_response = client.get(f"/annotations/{annotation_id}", headers=other_headers)
+    other_update_response = client.patch(
+        f"/annotations/{annotation_id}",
+        json={"text": "Hijacked"},
+        headers=other_headers,
+    )
+    other_delete_response = client.delete(
+        f"/annotations/{annotation_id}",
+        headers=other_headers,
+    )
+
+    assert unauthenticated_response.status_code == 401
+    assert other_detail_response.status_code == 404
+    assert other_update_response.status_code == 404
+    assert other_delete_response.status_code == 404
+
+
 def test_create_annotation_requires_authentication(client: TestClient) -> None:
     response = client.post(
         "/papers/https://openalex.org/W1/annotations",
@@ -77,6 +158,18 @@ def test_create_annotation_rejects_missing_paper(client: TestClient) -> None:
     response = client.post(
         "/papers/https://openalex.org/W999/annotations",
         json={"text": "Important note"},
+        headers=headers,
+    )
+
+    assert response.status_code == 404
+    assert response.json()["detail"] == "paper 'https://openalex.org/W999' was not found"
+
+
+def test_list_annotations_rejects_missing_paper(client: TestClient) -> None:
+    headers = _register_user(client, "annotator@example.com")
+
+    response = client.get(
+        "/papers/https://openalex.org/W999/annotations",
         headers=headers,
     )
 

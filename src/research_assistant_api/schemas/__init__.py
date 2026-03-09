@@ -9,6 +9,7 @@ from research_assistant_api.schemas.analytics import (
 from research_assistant_api.schemas.annotations import (
     AnnotationCreateRequest,
     AnnotationResponse,
+    AnnotationUpdateRequest,
 )
 from research_assistant_api.schemas.auth import (
     AccessTokenResponse,
@@ -50,6 +51,7 @@ __all__ = [
     "AuthorDetail",
     "AnnotationCreateRequest",
     "AnnotationResponse",
+    "AnnotationUpdateRequest",
     "AuthenticatedUser",
     "CitationNeighborhoodResponse",
     "CitationPathResponse",
