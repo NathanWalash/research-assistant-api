@@ -8,6 +8,7 @@ from research_assistant_api.db.session import get_engine, get_session_factory
 from research_assistant_api.ingestion.config import IngestionConfig
 from research_assistant_api.ingestion.service import CsvIngestionService
 from research_assistant_api.main import create_app
+from research_assistant_api.models import Citation
 from research_assistant_api.models import Paper
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"
@@ -66,6 +67,22 @@ def _seed_dataset(database_url: str) -> None:
                     abstract="Missing embedding context",
                     publication_year=2024,
                     citation_count=1,
+                ),
+            ]
+        )
+        session.add_all(
+            [
+                Citation(
+                    citing_paper_id="https://openalex.org/W3",
+                    cited_paper_id="https://openalex.org/W1",
+                ),
+                Citation(
+                    citing_paper_id="https://openalex.org/W4",
+                    cited_paper_id="https://openalex.org/W1",
+                ),
+                Citation(
+                    citing_paper_id="https://openalex.org/W2",
+                    cited_paper_id="https://openalex.org/W4",
                 ),
             ]
         )
@@ -129,10 +146,90 @@ def test_project_recommendations_rank_candidates_and_exclude_reading_list(
     assert response.status_code == 200
     payload = response.json()
     assert [item["id"] for item in payload] == [
+        "https://openalex.org/W4",
+        "https://openalex.org/W3",
+    ]
+    assert payload[0]["recommendation_score"] > payload[1]["recommendation_score"]
+    assert payload[0]["scoring_mode"] == "hybrid"
+    assert payload[0]["semantic_weight"] == 0.7
+    assert payload[0]["citation_weight"] == 0.3
+
+
+def test_project_recommendations_support_semantic_only_mode(
+    client: TestClient,
+) -> None:
+    headers = _register_user(client, "owner@example.com")
+    project_id = _create_project(client, headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W1", headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W2", headers)
+
+    response = client.get(
+        f"/projects/{project_id}/recommendations",
+        params={"mode": "semantic", "limit": 2},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["id"] for item in payload] == [
         "https://openalex.org/W3",
         "https://openalex.org/W4",
     ]
-    assert payload[0]["recommendation_score"] > payload[1]["recommendation_score"]
+    assert payload[0]["semantic_weight"] == 1.0
+    assert payload[0]["citation_weight"] == 0.0
+
+
+def test_project_recommendations_support_citation_only_mode(
+    client: TestClient,
+) -> None:
+    headers = _register_user(client, "owner@example.com")
+    project_id = _create_project(client, headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W1", headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W2", headers)
+
+    response = client.get(
+        f"/projects/{project_id}/recommendations",
+        params={"mode": "citation", "limit": 2},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["id"] for item in payload] == [
+        "https://openalex.org/W4",
+        "https://openalex.org/W3",
+    ]
+    assert payload[0]["citation_weight"] == 1.0
+    assert payload[0]["semantic_weight"] == 0.0
+
+
+def test_project_recommendations_support_custom_weights(
+    client: TestClient,
+) -> None:
+    headers = _register_user(client, "owner@example.com")
+    project_id = _create_project(client, headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W1", headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W2", headers)
+
+    response = client.get(
+        f"/projects/{project_id}/recommendations",
+        params={
+            "mode": "hybrid",
+            "semantic_weight": 0.9,
+            "citation_weight": 0.1,
+            "limit": 2,
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert [item["id"] for item in payload] == [
+        "https://openalex.org/W4",
+        "https://openalex.org/W3",
+    ]
+    assert payload[0]["semantic_weight"] == 0.9
+    assert payload[0]["citation_weight"] == 0.1
 
 
 def test_project_recommendations_require_embedded_context(client: TestClient) -> None:
@@ -146,6 +243,23 @@ def test_project_recommendations_require_embedded_context(client: TestClient) ->
     assert response.json()["detail"] == (
         f"project '{project_id}' does not have any embedded reading list papers yet"
     )
+
+
+def test_project_recommendations_allow_citation_mode_without_embeddings(
+    client: TestClient,
+) -> None:
+    headers = _register_user(client, "owner@example.com")
+    project_id = _create_project(client, headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W6", headers)
+
+    response = client.get(
+        f"/projects/{project_id}/recommendations",
+        params={"mode": "citation"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json() == []
 
 
 def test_project_recommendations_require_authentication(client: TestClient) -> None:
@@ -167,3 +281,23 @@ def test_project_recommendations_enforce_ownership(client: TestClient) -> None:
 
     assert response.status_code == 404
     assert response.json()["detail"] == f"project '{project_id}' was not found"
+
+
+def test_project_recommendations_reject_zero_total_weights(
+    client: TestClient,
+) -> None:
+    headers = _register_user(client, "owner@example.com")
+    project_id = _create_project(client, headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W1", headers)
+
+    response = client.get(
+        f"/projects/{project_id}/recommendations",
+        params={"semantic_weight": 0, "citation_weight": 0},
+        headers=headers,
+    )
+
+    assert response.status_code == 422
+    assert (
+        response.json()["detail"]
+        == "semantic_weight and citation_weight cannot both be zero"
+    )
