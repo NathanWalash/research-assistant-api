@@ -54,6 +54,14 @@ python -m pip install -r requirements-dev.txt
 
 The API will then be available on `http://127.0.0.1:8000`.
 
+The interactive frontend will be available on `http://127.0.0.1:8000/app` with separate pages for:
+
+- discovery
+- projects
+- analytics
+- account
+- login and registration
+
 ## Optional Citation Graph Enrichment
 
 To fetch Leeds-to-Leeds citation edges from OpenAlex and resume automatically if interrupted:

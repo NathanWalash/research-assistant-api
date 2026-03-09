@@ -81,14 +81,16 @@ If you already have a fully populated local Postgres instance, you can also expo
 After deployment:
 
 1. open `/health`
-2. open `/openapi.json`
-3. register a user
-4. query `/papers/search`
-5. test `/papers/{id}/similar`
-6. test `/projects/{id}/recommendations` after creating a project and adding reading-list papers
+2. open `/app` and confirm the frontend loads
+3. open `/openapi.json`
+4. register a user from `/app/register` or the API directly
+5. query `/papers/search`
+6. test `/papers/{id}/similar`
+7. test `/projects/{id}/recommendations` after creating a project and adding reading-list papers
 
 ## Limits And Practical Notes
 
 - Railway trial resources are limited, so full embedding generation may take time and consume trial credit.
 - The deployed app image is only intended to serve the API. Heavy ingestion and embedding jobs are better run from your local machine against the Railway database.
 - Railway healthchecks only validate startup readiness, not ongoing application health after deployment.
+- The same Railway service also serves the static frontend from `/app`, so you do not need a separate frontend host for the coursework demo.

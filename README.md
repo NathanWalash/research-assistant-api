@@ -36,6 +36,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - similar papers endpoint
 - project recommendation endpoint
 - configurable recommendation scoring modes
+- multi-page static frontend served by FastAPI at `/app`
 - container deployment files for the API runtime
 - smoke and endpoint tests
 
@@ -47,6 +48,8 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 4. Activate it with `.\.venv\Scripts\Activate.ps1`.
 5. Install dependencies with `python -m pip install -e ".[dev]"`.
 6. Run the API with `uvicorn research_assistant_api.main:app --reload`.
+
+The API will be available at `http://127.0.0.1:8000` and the interactive frontend at `http://127.0.0.1:8000/app`.
 
 If you prefer pinned local dependencies instead of editable install with version ranges, use `python -m pip install -r requirements-dev.txt`.
 
@@ -85,6 +88,7 @@ The current tests cover:
 - authenticated annotation creation, listing, update, and deletion
 - project recommendation ranking and access control
 - PostgreSQL-only integration checks for vector similarity and lookup indexes
+- frontend page and static asset smoke coverage
 
 ## Continuous Integration
 
