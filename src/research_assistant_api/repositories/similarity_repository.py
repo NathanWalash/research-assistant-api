@@ -64,7 +64,6 @@ class SimilarityRepository:
             .options(selectinload(Paper.topic))
             .where(
                 Paper.id != target_paper.id,
-                Paper.embedding.is_not(None),
             )
         )
         candidates = list(self.session.scalars(statement).all())
@@ -78,6 +77,7 @@ class SimilarityRepository:
                     ),
                 )
                 for candidate in candidates
+                if candidate.embedding is not None
             ),
             key=lambda record: (
                 -record.similarity_score,
