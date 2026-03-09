@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Log In | Research Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/app/static/app.css" />
+    <script type="module" src="/app/static/login.js"></script>
+  </head>
+  <body data-page="login">
+    <div class="page-shell auth-shell">
+      <a class="back-link" href="/app">Back to overview</a>
+      <main class="hero-card auth-grid">
+        <section class="hero-copy">
+          <p class="eyebrow">Authentication</p>
+          <h1>Log in to manage projects, reading lists, and annotations.</h1>
+          <p class="hero-text">
+            The frontend stores only the bearer token and current user in browser storage.
+            All protected actions continue to flow through the FastAPI backend.
+          </p>
+          <ul class="hero-points">
+            <li>Create and update private research projects.</li>
+            <li>Attach notes to papers and reading-list items.</li>
+            <li>Run semantic, citation, and hybrid recommendations.</li>
+          </ul>
+        </section>
+
+        <section class="auth-card">
+          <div class="section-header compact">
+            <div>
+              <p class="section-eyebrow">Sign in</p>
+              <h2>Continue to your workspace.</h2>
+            </div>
+          </div>
+          <form id="login-form" class="stack-form">
+            <label>
+              <span>Email</span>
+              <input id="login-email" type="email" autocomplete="email" required />
+            </label>
+            <label>
+              <span>Password</span>
+              <input
+                id="login-password"
+                type="password"
+                autocomplete="current-password"
+                required
+              />
+            </label>
+            <button class="button primary" type="submit">Log in</button>
+          </form>
+          <p id="auth-status" class="helper-text">
+            Use an existing account or create a new one first.
+          </p>
+          <div class="button-row">
+            <a class="button secondary compact" href="/app/register">Create account</a>
+            <a class="button ghost compact" href="/app/discover">Browse without login</a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

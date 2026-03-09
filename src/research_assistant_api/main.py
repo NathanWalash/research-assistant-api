@@ -1,4 +1,8 @@
-from fastapi import FastAPI
+from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from research_assistant_api.api.router import api_router
 from research_assistant_api.core.config import get_settings
@@ -21,8 +25,22 @@ OPENAPI_TAGS = [
 ]
 
 
+def _frontend_directory() -> Path:
+    return Path(__file__).resolve().parent / "frontend"
+
+
 def create_app() -> FastAPI:
     settings = get_settings()
+    frontend_dir = _frontend_directory()
+    frontend_pages = {
+        "": "index.html",
+        "login": "login.html",
+        "register": "register.html",
+        "discover": "discover.html",
+        "projects": "projects.html",
+        "analytics": "analytics.html",
+        "account": "account.html",
+    }
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
@@ -31,6 +49,24 @@ def create_app() -> FastAPI:
         debug=settings.debug,
     )
     app.include_router(api_router, prefix=settings.api_prefix)
+    app.mount(
+        "/app/static",
+        StaticFiles(directory=str(frontend_dir)),
+        name="frontend-static",
+    )
+
+    @app.get("/app", include_in_schema=False)
+    @app.get("/app/", include_in_schema=False)
+    def serve_frontend_index() -> FileResponse:
+        return FileResponse(frontend_dir / "index.html")
+
+    @app.get("/app/{page_name}", include_in_schema=False)
+    def serve_frontend_page(page_name: str) -> FileResponse:
+        filename = frontend_pages.get(page_name)
+        if filename is None:
+            raise HTTPException(status_code=404, detail="frontend page was not found")
+        return FileResponse(frontend_dir / filename)
+
     return app
 
 
