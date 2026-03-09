@@ -21,6 +21,7 @@ dependencies = [
 
 [project.scripts]
 research-assistant-ingest = "research_assistant_api.ingestion.cli:main"
+research-assistant-embed = "research_assistant_api.embeddings.cli:main"
 
 [project.optional-dependencies]
 dev = [

@@ -3,6 +3,7 @@
 from research_assistant_api.embeddings.service import (
     EMBEDDING_DIMENSIONS,
     EmbeddingGenerationSummary,
+    PaperEmbeddingService,
     SentenceTransformerEmbedder,
     build_embedding_text,
     cosine_similarity,
@@ -11,6 +12,7 @@ from research_assistant_api.embeddings.service import (
 __all__ = [
     "EMBEDDING_DIMENSIONS",
     "EmbeddingGenerationSummary",
+    "PaperEmbeddingService",
     "SentenceTransformerEmbedder",
     "build_embedding_text",
     "cosine_similarity",

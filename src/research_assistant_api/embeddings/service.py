@@ -15,6 +15,22 @@ class EmbeddingSource(Protocol):
     abstract: str | None
 
 
+class EmbeddingRepositoryProtocol(Protocol):
+    def list_papers_for_embedding(
+        self,
+        *,
+        limit: int | None,
+        paper_id: str | None,
+        missing_only: bool,
+    ) -> list[EmbeddingSource]: ...
+
+    def save_embeddings(
+        self,
+        papers: list[EmbeddingSource],
+        embeddings: list[list[float]],
+    ) -> None: ...
+
+
 def build_embedding_text(paper: EmbeddingSource) -> str:
     title = paper.title.strip()
     abstract = (paper.abstract or "").strip()
@@ -56,3 +72,35 @@ class SentenceTransformerEmbedder:
 class EmbeddingGenerationSummary:
     papers_selected: int = 0
     papers_embedded: int = 0
+
+
+class PaperEmbeddingService:
+    def __init__(
+        self,
+        repository: EmbeddingRepositoryProtocol,
+        embedder: TextEmbedder,
+    ):
+        self.repository = repository
+        self.embedder = embedder
+
+    def generate_embeddings(
+        self,
+        *,
+        limit: int | None,
+        paper_id: str | None,
+        force: bool,
+    ) -> EmbeddingGenerationSummary:
+        papers = self.repository.list_papers_for_embedding(
+            limit=limit,
+            paper_id=paper_id,
+            missing_only=not force,
+        )
+        summary = EmbeddingGenerationSummary(papers_selected=len(papers))
+        if not papers:
+            return summary
+
+        texts = [build_embedding_text(paper) for paper in papers]
+        embeddings = self.embedder.encode_texts(texts)
+        self.repository.save_embeddings(papers, embeddings)
+        summary.papers_embedded = len(embeddings)
+        return summary
