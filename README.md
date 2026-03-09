@@ -21,6 +21,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - protected reading list endpoints
 - authenticated annotation endpoint
 - similar papers endpoint
+- project recommendation endpoint
 - smoke and endpoint tests
 
 ## Local Development
@@ -64,6 +65,7 @@ The current tests cover:
 - protected project CRUD workflows
 - protected reading list workflows
 - authenticated annotation creation
+- project recommendation ranking and access control
 
 ## Continuous Integration
 
@@ -170,6 +172,7 @@ For the report and presentation, the honest framing is:
 
 - citation counts are used for influence-style analytics, not citation traversal
 - the implemented graph feature is co-authorship, because that relationship exists directly in the ingested data
+- the implemented recommendation feature uses embeddings plus reading-list context, not citation proximity
 - citation-graph traversal is a planned extension that depends on a supplementary citation-edge source
 
 ## Current Scope
@@ -181,7 +184,7 @@ For the report and presentation, the honest framing is:
 - project CRUD workflows
 - reading list and annotation workflows
 - semantic similarity via stored embeddings
-- recommendations as the next planned extension
+- project recommendations via reading-list embedding context
 
 ## Implemented Authentication Endpoints
 
@@ -198,8 +201,11 @@ Authentication uses bearer tokens signed with the JWT settings defined in `.env.
 - `GET /projects/{id}`
 - `PATCH /projects/{id}`
 - `DELETE /projects/{id}`
+- `GET /projects/{id}/recommendations`
 
 Project routes are scoped to the authenticated user, so users can only see and modify their own projects.
+
+Project recommendations are built from the embeddings of papers already saved in the project's reading list. Candidate papers already present in the reading list are excluded, and ranking is based on semantic similarity to the project embedding centroid.
 
 ## Implemented Reading List Endpoints
 
@@ -237,7 +243,6 @@ The collaboration endpoint exposes co-authorship edges between authors. This is 
 
 ## Future Extension
 
-- project recommendations using embeddings and reading-list context
 - citation graph exploration via supplementary citation-edge ingestion
 - shortest citation path and neighbourhood endpoints once citation edges are available
 - hybrid recommendation scoring that includes citation proximity once citation edges are available
