@@ -13,4 +13,6 @@ def test_openapi_exposes_core_metadata_and_routes() -> None:
     assert payload["info"]["title"] == "Research Assistant API"
     assert payload["info"]["description"] == API_DESCRIPTION
     assert "/projects/{project_id}/recommendations" in payload["paths"]
+    assert "/papers/{paper_id}/citations" in payload["paths"]
+    assert "/papers/{paper_id}/path/{target_paper_id}" in payload["paths"]
     assert "/papers/{paper_id}/similar" in payload["paths"]
