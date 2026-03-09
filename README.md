@@ -22,6 +22,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - authenticated annotation endpoint
 - similar papers endpoint
 - project recommendation endpoint
+- container deployment files for the API runtime
 - smoke and endpoint tests
 
 ## Local Development
@@ -73,6 +74,7 @@ GitHub Actions is configured in `.github/workflows/ci.yml`.
 
 The workflow currently runs:
 
+- Ruff lint checks on `src` and `tests`
 - the Python smoke test suite on every push and pull request
 - an Alembic migration check against PostgreSQL using a `pgvector` service container
 
@@ -86,6 +88,30 @@ In the current repo:
 - the API itself runs from your local Python environment
 
 If we add an application Dockerfile later, the container will install dependencies from `requirements.txt` or `pyproject.toml` inside the image. Your local `.venv` will not be copied into or reused by the container.
+
+## Container Deployment
+
+The repository now includes a `Dockerfile`, `.dockerignore`, and an optional `api` service in `docker-compose.yml`.
+
+To run the API container locally alongside PostgreSQL:
+
+```bash
+docker compose --profile app up -d --build
+```
+
+The API container:
+
+- waits for the PostgreSQL service to become healthy
+- runs `alembic upgrade head` on startup
+- serves the FastAPI app on port `8000`
+
+Useful commands:
+
+- `docker compose --profile app logs api --tail 100`
+- `docker compose --profile app up -d db`
+- `docker compose --profile app config`
+
+The runtime image is intended for serving the API and using already stored embeddings. Embedding generation is still best run as an explicit job from the local development environment or a separate worker environment with the semantic dependencies available.
 
 ## Data Ingestion
 
