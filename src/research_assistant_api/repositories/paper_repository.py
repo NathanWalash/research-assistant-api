@@ -8,6 +8,10 @@ class PaperRepository:
     def __init__(self, session: Session):
         self.session = session
 
+    def exists(self, paper_id: str) -> bool:
+        statement = select(Paper.id).where(Paper.id == paper_id)
+        return self.session.scalar(statement) is not None
+
     def get_by_id(self, paper_id: str) -> Paper | None:
         statement = (
             select(Paper)

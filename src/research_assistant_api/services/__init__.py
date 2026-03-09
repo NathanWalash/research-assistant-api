@@ -13,6 +13,11 @@ from research_assistant_api.services.discovery import (
     TopicService,
 )
 from research_assistant_api.services.projects import ProjectNotFoundError, ProjectService
+from research_assistant_api.services.reading_list import (
+    DuplicateReadingListItemError,
+    ReadingListItemNotFoundError,
+    ReadingListService,
+)
 
 __all__ = [
     "AnalyticsService",
@@ -20,9 +25,12 @@ __all__ = [
     "AuthService",
     "AuthorService",
     "DiscoveryNotFoundError",
+    "DuplicateReadingListItemError",
     "PaperService",
     "ProjectNotFoundError",
     "ProjectService",
+    "ReadingListItemNotFoundError",
+    "ReadingListService",
     "TopicService",
     "UserAlreadyExistsError",
 ]
