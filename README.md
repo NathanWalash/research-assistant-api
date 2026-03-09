@@ -15,7 +15,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - discovery endpoints for papers, authors, and topics
 - pgvector-backed paper embedding support
 - embedding generation pipeline using sentence-transformers
-- analytics endpoints for top papers, topic distribution, publication trends, and co-authorship pairs
+- analytics endpoints for top papers, topic distribution, publication trends, and co-authorship graph edges
 - JWT-based authentication endpoints
 - protected project CRUD endpoints
 - protected reading list endpoints
@@ -145,8 +145,9 @@ That means the current system can support:
 
 - paper search and metadata lookup
 - topic, author, and institution analytics
-- popularity and influence ranking using citation counts
-- semantic similarity and recommendation features
+- popularity and influence ranking using `cited_by_count`
+- a real co-authorship graph derived from paper authorship lists
+- semantic similarity using stored embeddings
 - user workflows such as projects, reading lists, and notes
 
 It does not currently support true citation-graph operations such as:
@@ -157,10 +158,17 @@ It does not currently support true citation-graph operations such as:
 
 Those graph features remain possible in the architecture, but only after ingesting a second source that contains explicit citation edge pairs.
 
+For the report and presentation, the honest framing is:
+
+- citation counts are used for influence-style analytics, not citation traversal
+- the implemented graph feature is co-authorship, because that relationship exists directly in the ingested data
+- citation-graph traversal is a planned extension that depends on a supplementary citation-edge source
+
 ## Current Scope
 
 - paper discovery and metadata lookup
-- corpus analytics
+- corpus analytics and influence metrics based on `cited_by_count`
+- co-authorship graph analytics
 - JWT authentication
 - project CRUD workflows
 - reading list and annotation workflows
@@ -217,10 +225,11 @@ Annotations currently support authenticated creation. Listing and editing annota
 - `GET /analytics/trends`
 - `GET /analytics/collaborations`
 
-The collaboration endpoint currently exposes co-authorship pairs because that relationship is directly supported by the ingested authorship data. Institution-level collaboration graphs would need richer affiliation-per-authorship modelling.
+The collaboration endpoint exposes co-authorship edges between authors. This is a real graph derived from the authorship data in the Leeds CSV. It is not a citation graph. Institution-level collaboration graphs would need richer affiliation-per-authorship modelling.
 
 ## Future Extension
 
-- hybrid recommendations once the embedding stack is in place
+- project recommendations using embeddings and reading-list context
 - citation graph exploration via supplementary citation-edge ingestion
 - shortest citation path and neighbourhood endpoints once citation edges are available
+- hybrid recommendation scoring that includes citation proximity once citation edges are available
