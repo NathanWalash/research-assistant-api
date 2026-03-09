@@ -15,11 +15,13 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - discovery endpoints for papers, authors, and topics
 - pgvector-backed paper embedding support
 - embedding generation pipeline using sentence-transformers
+- derived Leeds-to-Leeds citation edge dataset generation
 - analytics endpoints for top papers, topic distribution, publication trends, and co-authorship graph edges
 - JWT-based authentication endpoints
 - protected project CRUD endpoints
 - protected reading list endpoints
 - authenticated annotation endpoint
+- citation neighbourhood and directed citation path endpoints
 - similar papers endpoint
 - project recommendation endpoint
 - container deployment files for the API runtime
@@ -60,6 +62,7 @@ The current tests cover:
 - Alembic migration wiring against SQLite
 - CSV ingestion for papers, topics, authors, institutions, and optional citation edges
 - discovery API read endpoints for papers, authors, and topics
+- citation graph API read endpoints
 - embedding generation pipeline and similarity ranking
 - analytics API read endpoints
 - authentication endpoints and bearer-token access control
@@ -127,6 +130,10 @@ Useful options:
 - `research-assistant-ingest --csv-path path/to/data.csv`
 - `research-assistant-ingest --citation-csv-path path/to/citation_edges.csv`
 
+The derived Leeds citation-edge dataset generated for this repo lives at:
+
+- `data/derived/leeds_citation_edges.csv`
+
 The current Leeds CSV includes:
 
 - papers
@@ -186,10 +193,12 @@ The progress JSON includes completed batches, fetched papers, exported edges, el
 
 This produces a real Leeds-to-Leeds citation subgraph. It is still a subset graph, so citation neighbourhoods and shortest paths are only complete within the Leeds corpus, not across all OpenAlex works.
 
+Because the main Leeds metadata CSV contains a small number of malformed rows that are skipped by paper ingestion, the citation importer also skips any derived edges whose citing or cited paper is not present in the local `papers` table.
+
 If you later want to load those edges into PostgreSQL, rerun ingestion with the exported edge file:
 
 ```bash
-research-assistant-ingest --citation-csv-path .tmp/leeds_citation_edges.csv
+research-assistant-ingest --citation-csv-path data/derived/leeds_citation_edges.csv
 ```
 
 ## Embeddings
@@ -222,9 +231,9 @@ Implementation notes:
 
 ## Dataset Limitation
 
-The Leeds dataset currently loaded into the project contains aggregate citation counts such as `cited_by_count`, but not explicit work-to-work citation edges.
+The main Leeds metadata CSV loaded into the project contains aggregate citation counts such as `cited_by_count`, but not explicit work-to-work citation edges.
 
-That means the current system can support:
+That means the base metadata export supports:
 
 - paper search and metadata lookup
 - topic, author, and institution analytics
@@ -233,28 +242,35 @@ That means the current system can support:
 - semantic similarity using stored embeddings
 - user workflows such as projects, reading lists, and notes
 
-It does not currently support true citation-graph operations such as:
+It does not support true citation-graph operations by itself. Those only become possible after ingesting the supplementary citation-edge dataset.
+
+With the supplementary Leeds-to-Leeds edge dataset now generated for this repo, the system can also support:
 
 - citation neighbourhood traversal
 - shortest citation path discovery
-- bridge-paper discovery through citation edges
 
-Those graph features remain possible in the architecture, but only after ingesting a second source that contains explicit citation edge pairs.
+The remaining limitation is scope:
 
-That enrichment source can now be generated from OpenAlex for the exact Leeds work set, but the resulting graph remains a Leeds-only induced subgraph rather than the full global citation network.
+- citation paths are complete only within the Leeds subset
+- paths that would require non-Leeds intermediary papers are outside this local graph
+- citation-proximity scoring is still Leeds-subgraph-aware rather than global
+
+That supplementary graph is still a Leeds-only induced subgraph rather than the full global OpenAlex citation network.
 
 For the report and presentation, the honest framing is:
 
-- citation counts are used for influence-style analytics, not citation traversal
-- the implemented graph feature is co-authorship, because that relationship exists directly in the ingested data
+- citation counts are used for influence-style analytics
+- citation traversal is implemented only after supplementing the Leeds metadata export with explicit Leeds-to-Leeds citation edges
+- the project now contains both a co-authorship graph and a Leeds citation subgraph
 - the implemented recommendation feature uses embeddings plus reading-list context, not citation proximity
-- citation-graph traversal is a planned extension that depends on a supplementary citation-edge source
 
 ## Current Scope
 
 - paper discovery and metadata lookup
 - corpus analytics and influence metrics based on `cited_by_count`
 - co-authorship graph analytics
+- citation neighbourhood lookup within the Leeds citation subgraph
+- directed shortest citation path lookup within the Leeds citation subgraph
 - JWT authentication
 - project CRUD workflows
 - reading list and annotation workflows
@@ -301,6 +317,8 @@ Annotations currently support authenticated creation. Listing and editing annota
 
 - `GET /papers/search`
 - `GET /papers/{id}`
+- `GET /papers/{id}/citations`
+- `GET /papers/{id}/path/{target_id}`
 - `GET /papers/{id}/similar`
 - `GET /authors/{id}`
 - `GET /authors/{id}/papers`
@@ -318,6 +336,6 @@ The collaboration endpoint exposes co-authorship edges between authors. This is 
 
 ## Future Extension
 
-- citation graph exploration via supplementary citation-edge ingestion
-- shortest citation path and neighbourhood endpoints once citation edges are available in the local citation-edge table
+- citation graph exploration beyond the Leeds subset
+- bidirectional or undirected citation path options if needed
 - hybrid recommendation scoring that includes citation proximity once citation edges are available
