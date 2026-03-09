@@ -4,6 +4,16 @@ Research Assistant API is a FastAPI service for discovering and organising schol
 
 The current MVP focuses on semantic discovery, metadata analytics, and research organisation workflows for the Leeds article subset.
 
+## Documentation Map
+
+- [Getting Started](docs/getting-started.md)
+- [Configuration](docs/configuration.md)
+- [Architecture](docs/architecture.md)
+- [API Examples](docs/api-examples.md)
+- [Operations](docs/operations.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Demo Flow](docs/demo-flow.md)
+
 ## Current Status
 
 The repository currently contains the raw Leeds articles CSV, the application foundation, and the first discovery API endpoints. The implemented batches currently cover:
@@ -20,7 +30,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - JWT-based authentication endpoints
 - protected project CRUD endpoints
 - protected reading list endpoints
-- authenticated annotation endpoint
+- authenticated annotation CRUD endpoints
 - citation neighbourhood and directed citation path endpoints
 - similar papers endpoint
 - project recommendation endpoint
@@ -34,8 +44,10 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 2. Start PostgreSQL with `docker compose up -d db`.
 3. Create a virtual environment with `python -m venv .venv`.
 4. Activate it with `.\.venv\Scripts\Activate.ps1`.
-5. Install dependencies with `python -m pip install -r requirements-dev.txt`.
+5. Install dependencies with `python -m pip install -e ".[dev]"`.
 6. Run the API with `uvicorn research_assistant_api.main:app --reload`.
+
+If you prefer pinned local dependencies instead of editable install with version ranges, use `python -m pip install -r requirements-dev.txt`.
 
 The default database configuration uses PostgreSQL with the `pgvector` image so vector support can be added later without replacing the local database container. The container is published on `localhost:5433` to avoid clashing with an existing PostgreSQL service on the default `5432` port.
 
@@ -69,8 +81,9 @@ The current tests cover:
 - authentication endpoints and bearer-token access control
 - protected project CRUD workflows
 - protected reading list workflows
-- authenticated annotation creation
+- authenticated annotation creation, listing, update, and deletion
 - project recommendation ranking and access control
+- PostgreSQL-only integration checks for vector similarity and lookup indexes
 
 ## Continuous Integration
 
@@ -81,6 +94,8 @@ The workflow currently runs:
 - Ruff lint checks on `src` and `tests`
 - the Python smoke test suite on every push and pull request
 - an Alembic migration check against PostgreSQL using a `pgvector` service container
+- PostgreSQL-only integration tests for lookup indexes and vector similarity
+- a Docker-based app startup smoke check
 
 ## Virtualenv And Docker
 
@@ -88,10 +103,11 @@ The local `.venv` is for development on your machine. Docker does not use your h
 
 In the current repo:
 
-- `docker compose` is only used to run PostgreSQL locally
-- the API itself runs from your local Python environment
+- `docker compose` can run PostgreSQL locally
+- `docker compose --profile app` can also run the API container locally
+- the API can still be run directly from your local Python environment during development
 
-If we add an application Dockerfile later, the container will install dependencies from `requirements.txt` or `pyproject.toml` inside the image. Your local `.venv` will not be copied into or reused by the container.
+The container installs runtime dependencies from `pyproject.toml` inside the image. Your local `.venv` is not copied into or reused by the container.
 
 ## Container Deployment
 
@@ -339,8 +355,12 @@ Reading list items are scoped through the owning project, so users can only mana
 ## Implemented Annotation Endpoint
 
 - `POST /papers/{id}/annotations`
+- `GET /papers/{id}/annotations`
+- `GET /annotations/{id}`
+- `PATCH /annotations/{id}`
+- `DELETE /annotations/{id}`
 
-Annotations currently support authenticated creation. Listing and editing annotations can be added later if needed.
+Annotations are private to the authenticated user who created them.
 
 ## Implemented Discovery Endpoints
 
