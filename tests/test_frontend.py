@@ -35,13 +35,7 @@ def test_frontend_static_assets_are_served(monkeypatch) -> None:
 
     for path in [
         "/app/static/app.css",
-        "/app/static/shared.js",
-        "/app/static/landing.js",
-        "/app/static/discover.js",
-        "/app/static/endpoints.js",
-        "/app/static/projects.js",
-        "/app/static/analytics.js",
-        "/app/static/account.js",
+        "/app/static/main.js",
     ]:
         response = client.get(path)
 
