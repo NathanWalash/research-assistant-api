@@ -11,6 +11,7 @@ requires-python = ">=3.12"
 dependencies = [
     "alembic>=1.14,<2.0",
     "fastapi>=0.115,<1.0",
+    "mcp>=1.26,<2.0",
     "pgvector>=0.3,<1.0",
     "PyJWT>=2.10,<3.0",
     "pydantic-settings>=2.6,<3.0",
@@ -23,6 +24,7 @@ dependencies = [
 research-assistant-ingest = "research_assistant_api.ingestion.cli:main"
 research-assistant-embed = "research_assistant_api.embeddings.cli:main"
 research-assistant-export-citation-graph = "research_assistant_api.citation_graph.cli:main"
+research-assistant-mcp = "research_assistant_api.mcp.cli:main"
 
 [project.optional-dependencies]
 dev = [

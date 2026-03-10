@@ -69,3 +69,12 @@ def test_settings_normalize_database_url() -> None:
     )
 
     assert settings.database_url == "postgresql+psycopg://user:pass@host:5432/db"
+
+
+def test_settings_normalize_mcp_mount_path() -> None:
+    settings = Settings(
+        environment="development",
+        mcp_mount_path="mcp",
+    )
+
+    assert settings.mcp_mount_path == "/mcp"
