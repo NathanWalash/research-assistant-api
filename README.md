@@ -27,7 +27,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - pgvector-backed paper embedding support
 - embedding generation pipeline using sentence-transformers
 - derived Leeds-to-Leeds citation edge dataset generation
-- analytics endpoints for top papers, topic distribution, publication trends, and co-authorship graph edges
+- analytics endpoints for top papers, topic distribution, and publication trends
 - JWT-based authentication endpoints
 - protected project CRUD endpoints
 - protected reading list endpoints
@@ -260,7 +260,6 @@ That means the base metadata export supports:
 - paper search and metadata lookup
 - topic, author, and institution analytics
 - popularity and influence ranking using `cited_by_count`
-- a real co-authorship graph derived from paper authorship lists
 - semantic similarity using stored embeddings
 - user workflows such as projects, reading lists, and notes
 
@@ -283,14 +282,12 @@ For the report and presentation, the honest framing is:
 
 - citation counts are used for influence-style analytics
 - citation traversal is implemented only after supplementing the Leeds metadata export with explicit Leeds-to-Leeds citation edges
-- the project now contains both a co-authorship graph and a Leeds citation subgraph
 - the implemented recommendation feature supports semantic-only, citation-only, and hybrid project scoring
 
 ## Current Scope
 
 - paper discovery and metadata lookup
 - corpus analytics and influence metrics based on `cited_by_count`
-- co-authorship graph analytics
 - citation neighbourhood lookup within the Leeds citation subgraph
 - directed shortest citation path lookup within the Leeds citation subgraph
 - JWT authentication
@@ -298,6 +295,30 @@ For the report and presentation, the honest framing is:
 - reading list and annotation workflows
 - semantic similarity via stored embeddings
 - project recommendations via configurable semantic, citation, or hybrid scoring
+
+## API Pagination Coverage
+
+`limit` and `offset` are currently supported on:
+
+- `GET /papers/search`
+- `GET /papers/{id}/similar`
+- `GET /papers/{id}/citations`
+- `GET /papers/{id}/annotations`
+- `GET /authors`
+- `GET /authors/{id}/papers`
+- `GET /topics`
+- `GET /topics/{id}/papers`
+- `GET /analytics/top-papers`
+- `GET /analytics/topics`
+- `GET /projects/{id}/recommendations`
+
+Endpoints returning collections without `limit`/`offset`:
+
+- `GET /analytics/trends` (filters by `start_year` / `end_year` only)
+- `GET /projects`
+- `GET /projects/{id}/reading-list`
+
+The frontend uses backend pagination where available and falls back to client-side paging for `GET /analytics/trends`.
 
 ## Implemented Authentication Endpoints
 
@@ -374,6 +395,8 @@ Annotations are private to the authenticated user who created them.
 - `GET /papers/{id}/citations`
 - `GET /papers/{id}/path/{target_id}`
 - `GET /papers/{id}/similar`
+- `GET /authors`
+- `GET /authors/search?query={text}`
 - `GET /authors/{id}`
 - `GET /authors/{id}/papers`
 - `GET /topics`
@@ -384,9 +407,10 @@ Annotations are private to the authenticated user who created them.
 - `GET /analytics/top-papers`
 - `GET /analytics/topics`
 - `GET /analytics/trends`
-- `GET /analytics/collaborations`
 
-The collaboration endpoint exposes co-authorship edges between authors. This is a real graph derived from the authorship data in the Leeds CSV. It is not a citation graph. Institution-level collaboration graphs would need richer affiliation-per-authorship modelling.
+`GET /analytics/collaborations` was intentionally removed. The co-authorship query
+was too expensive for the current dataset size and produced poor interactive
+performance for the frontend demo workflow.
 
 ## Future Extension
 
