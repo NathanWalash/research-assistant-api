@@ -13,14 +13,13 @@ API_DESCRIPTION = (
 )
 OPENAPI_TAGS = [
     {"name": "health", "description": "Service health and liveness endpoints."},
-    {"name": "meta", "description": "Root service metadata."},
     {"name": "auth", "description": "User registration, login, and bearer-token identity."},
-    {"name": "analytics", "description": "Corpus-level analytics, trends, and collaboration summaries."},
+    {"name": "analytics", "description": "Corpus-level analytics, top-paper ranking, and publication trends."},
     {"name": "papers", "description": "Paper discovery, detail, similarity, citations, and paper-scoped annotations."},
     {"name": "annotations", "description": "Private annotation read, update, and delete operations."},
     {"name": "projects", "description": "User-owned projects, reading lists, and recommendation workflows."},
     {"name": "reading-list", "description": "Reading-list item update and delete operations."},
-    {"name": "authors", "description": "Author detail and paper lookup endpoints."},
+    {"name": "authors", "description": "Author search, detail, and paper lookup endpoints."},
     {"name": "topics", "description": "Topic lookup and topic-scoped paper listing."},
 ]
 

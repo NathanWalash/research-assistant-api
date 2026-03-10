@@ -22,13 +22,3 @@ api_router.include_router(projects_router)
 api_router.include_router(reading_list_items_router)
 api_router.include_router(authors_router)
 api_router.include_router(topics_router)
-
-
-@api_router.get(
-    "/",
-    tags=["meta"],
-    summary="Get service metadata",
-    description="Return a minimal service identifier for quick smoke checks.",
-)
-def read_root() -> dict[str, str]:
-    return {"service": "research-assistant-api"}
