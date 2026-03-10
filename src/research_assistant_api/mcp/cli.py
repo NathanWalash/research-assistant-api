@@ -27,7 +27,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     settings = get_settings()
     server = create_mcp_server(settings)
-    server.run(transport=args.transport, mount_path=args.mount_path)
+    mount_path = args.mount_path or settings.mcp_mount_path
+    server.run(transport=args.transport, mount_path=mount_path)
     return 0
 
 

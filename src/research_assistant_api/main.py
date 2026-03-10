@@ -49,6 +49,15 @@ def create_app() -> FastAPI:
         debug=settings.debug,
     )
     app.include_router(api_router, prefix=settings.api_prefix)
+    if settings.mcp_enabled:
+        from research_assistant_api.mcp.server import create_mcp_server
+
+        mcp_server = create_mcp_server(settings)
+        app.mount(
+            settings.mcp_mount_path,
+            mcp_server.streamable_http_app(),
+            name="mcp",
+        )
     app.mount(
         "/app/static",
         StaticFiles(directory=str(frontend_dir)),

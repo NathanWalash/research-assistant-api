@@ -15,7 +15,8 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
         ),
         host=resolved_settings.mcp_host,
         port=resolved_settings.mcp_port,
-        streamable_http_path=resolved_settings.mcp_mount_path,
+        # When mounted under FastAPI, the app should expose streamable HTTP at root.
+        streamable_http_path="/",
     )
 
     @mcp.tool(
