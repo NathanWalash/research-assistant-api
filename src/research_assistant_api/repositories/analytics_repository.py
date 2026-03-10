@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from sqlalchemy import Float, and_, cast, func, select
-from sqlalchemy.orm import Session, aliased, selectinload
+from sqlalchemy import Float, cast, func, select
+from sqlalchemy.orm import Session, selectinload
 
-from research_assistant_api.models import Author, Paper, PaperAuthor, Topic
+from research_assistant_api.models import Paper, Topic
 
 
 @dataclass(slots=True)
@@ -20,15 +20,6 @@ class PublicationTrendRecord:
     paper_count: int
     total_citation_count: int
     average_citation_count: float
-
-
-@dataclass(slots=True)
-class CollaborationPairRecord:
-    author_a_id: str
-    author_a_name: str
-    author_b_id: str
-    author_b_name: str
-    shared_paper_count: int
 
 
 class AnalyticsRepository:
@@ -142,65 +133,6 @@ class AnalyticsRepository:
                 paper_count=row[1],
                 total_citation_count=row[2],
                 average_citation_count=float(row[3] or 0.0),
-            )
-            for row in self.session.execute(statement)
-        ]
-
-    def list_collaboration_pairs(
-        self,
-        *,
-        min_shared_papers: int,
-        limit: int,
-        offset: int,
-    ) -> list[CollaborationPairRecord]:
-        left_authorship = aliased(PaperAuthor)
-        right_authorship = aliased(PaperAuthor)
-        left_author = aliased(Author)
-        right_author = aliased(Author)
-
-        shared_paper_count = func.count(func.distinct(left_authorship.paper_id))
-
-        statement = (
-            select(
-                left_author.id,
-                left_author.name,
-                right_author.id,
-                right_author.name,
-                shared_paper_count.label("shared_paper_count"),
-            )
-            .select_from(left_authorship)
-            .join(
-                right_authorship,
-                and_(
-                    left_authorship.paper_id == right_authorship.paper_id,
-                    left_authorship.author_id < right_authorship.author_id,
-                ),
-            )
-            .join(left_author, left_author.id == left_authorship.author_id)
-            .join(right_author, right_author.id == right_authorship.author_id)
-            .group_by(
-                left_author.id,
-                left_author.name,
-                right_author.id,
-                right_author.name,
-            )
-            .having(shared_paper_count >= min_shared_papers)
-            .order_by(
-                shared_paper_count.desc(),
-                left_author.name.asc(),
-                right_author.name.asc(),
-            )
-            .offset(offset)
-            .limit(limit)
-        )
-
-        return [
-            CollaborationPairRecord(
-                author_a_id=row[0],
-                author_a_name=row[1],
-                author_b_id=row[2],
-                author_b_name=row[3],
-                shared_paper_count=row[4],
             )
             for row in self.session.execute(statement)
         ]

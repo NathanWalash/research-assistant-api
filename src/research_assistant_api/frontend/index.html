@@ -3,10 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Research Assistant Workspace</title>
+    <title>Research Assistant</title>
     <meta
       name="description"
-      content="Interactive multi-page frontend for the Research Assistant API."
+      content="React frontend for the Research Assistant API."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,109 +15,9 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/app/static/app.css" />
-    <script type="module" src="/app/static/landing.js"></script>
+    <script type="module" src="/app/static/main.js"></script>
   </head>
   <body data-page="home">
-    <div class="page-shell">
-      <header class="workspace-nav">
-        <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">
-            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
-          </p>
-          <p class="brand-subtitle">Simple research workspace</p>
-        </a>
-        <nav class="nav-actions" aria-label="Primary">
-          <a class="nav-link" data-page-link="home" href="/app">Home</a>
-          <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
-          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
-          <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
-          <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-        </nav>
-        <div class="nav-meta">
-          <a class="button secondary compact" data-signin-link href="/app/login">
-            Sign in
-          </a>
-          <a class="button primary compact" data-register-link href="/app/register">
-            Create account
-          </a>
-          <a class="button secondary compact hidden" data-account-link href="/app/account">
-            My account
-          </a>
-          <button class="button danger compact hidden" data-logout-button type="button">
-            Sign out
-          </button>
-        </div>
-      </header>
-
-      <main class="workspace-stack">
-        <section class="hero-card hero-grid">
-          <div class="hero-copy">
-            <p class="eyebrow">Research Assistant</p>
-            <h1>Find papers, save what matters, and move faster.</h1>
-            <p class="hero-text">
-              This workspace gives you a direct way into the application: discover papers,
-              save the useful ones into projects, and review simple analytics without
-              needing to think about the API underneath.
-            </p>
-            <div class="hero-actions">
-              <a class="button primary" href="/app/discover">Start discovering papers</a>
-              <a class="button secondary" href="/app/register">Create account</a>
-            </div>
-          </div>
-
-          <aside class="surface-card emphasis-card landing-overview">
-            <p class="section-eyebrow">At a glance</p>
-            <h2>Live dataset snapshot.</h2>
-            <div class="metric-grid" id="landing-metrics">
-              <div class="metric-card">
-                <dt>Papers</dt>
-                <dd>Loading</dd>
-              </div>
-              <div class="metric-card">
-                <dt>Latest year</dt>
-                <dd>Loading</dd>
-              </div>
-            </div>
-            <p id="landing-status" class="helper-text">
-              Loading live summary data from the application.
-            </p>
-            <div class="landing-picks">
-              <p class="landing-picks-label">Top papers right now</p>
-              <div id="landing-featured-papers" class="mini-paper-list"></div>
-            </div>
-          </aside>
-        </section>
-
-        <section class="quick-grid">
-          <article class="surface-card action-card">
-            <p class="section-eyebrow">Discovery</p>
-            <h2>Inspect papers fast.</h2>
-            <p class="prose-block">
-              Search papers, inspect context, and trace related work quickly.
-            </p>
-            <a class="button secondary" href="/app/discover">Open discovery</a>
-          </article>
-
-          <article class="surface-card action-card">
-            <p class="section-eyebrow">Projects</p>
-            <h2>Organise reading work.</h2>
-            <p class="prose-block">
-              Create projects, rank saved papers, and grow reading lists.
-            </p>
-            <a class="button secondary" href="/app/projects">Open projects</a>
-          </article>
-
-          <article class="surface-card action-card">
-            <p class="section-eyebrow">Analytics</p>
-            <h2>Track corpus trends.</h2>
-            <p class="prose-block">
-              View top papers, topic spread, and yearly collaboration trends.
-            </p>
-            <a class="button secondary" href="/app/analytics">Open analytics</a>
-          </article>
-        </section>
-
-      </main>
-    </div>
+    <div id="app-root"></div>
   </body>
 </html>

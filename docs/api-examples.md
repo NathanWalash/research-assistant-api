@@ -1,5 +1,8 @@
 # API Examples
 
+Note: `GET /analytics/collaborations` is no longer available. It was removed
+because the co-authorship aggregation query was too slow for interactive usage.
+
 ## Register
 
 ```http
@@ -16,6 +19,12 @@ Content-Type: application/json
 
 ```http
 GET /papers/search?query=knowledge%20graphs&limit=5
+```
+
+## Search Authors
+
+```http
+GET /authors/search?query=alice&limit=5
 ```
 
 ## Paper Detail

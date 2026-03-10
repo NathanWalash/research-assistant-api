@@ -22,6 +22,45 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
 
 
 @router.get(
+    "",
+    response_model=list[AuthorDetail],
+    summary="List authors",
+    description="List authors in the local Leeds corpus subset.",
+)
+def list_authors(
+    session: Annotated[Session, Depends(get_db)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[AuthorDetail]:
+    service = _build_service(session)
+    return service.list_authors(
+        query=None,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/search",
+    response_model=list[AuthorDetail],
+    summary="Search authors",
+    description="Search authors in the local Leeds corpus subset by name or author id.",
+)
+def search_authors(
+    session: Annotated[Session, Depends(get_db)],
+    query: Annotated[str, Query(min_length=1)],
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
+) -> list[AuthorDetail]:
+    service = _build_service(session)
+    return service.list_authors(
+        query=query,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
     "/{author_id:path}/papers",
     response_model=list[PaperSummary],
     summary="List author papers",

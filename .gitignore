@@ -16,3 +16,17 @@ dist/
 build/
 *.egg-info/
 UniOfLeedsArticles2018_to_Present.csv
+
+# Frontend (React/esbuild)
+node_modules/
+src/research_assistant_api/frontend/node_modules/
+src/research_assistant_api/frontend/.cache/
+src/research_assistant_api/frontend/.parcel-cache/
+src/research_assistant_api/frontend/.vite/
+src/research_assistant_api/frontend/.turbo/
+src/research_assistant_api/frontend/coverage/
+src/research_assistant_api/frontend/main.js.map
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

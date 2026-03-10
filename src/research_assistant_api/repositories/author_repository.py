@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, selectinload
 
 from research_assistant_api.models import Author, Paper, PaperAuthor
@@ -15,6 +15,46 @@ class AuthorRecord:
 class AuthorRepository:
     def __init__(self, session: Session):
         self.session = session
+
+    def list_authors(
+        self,
+        *,
+        query: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[AuthorRecord]:
+        paper_count = func.count(PaperAuthor.paper_id)
+        statement = (
+            select(Author, paper_count.label("paper_count"))
+            .outerjoin(PaperAuthor, PaperAuthor.author_id == Author.id)
+            .options(selectinload(Author.institution))
+            .group_by(Author.id)
+        )
+
+        if query:
+            normalized_query = query.strip().lower()
+            if normalized_query:
+                pattern = f"%{normalized_query}%"
+                statement = statement.where(
+                    or_(
+                        func.lower(Author.name).like(pattern),
+                        func.lower(Author.id).like(pattern),
+                    )
+                )
+
+        statement = (
+            statement.order_by(
+                paper_count.desc(),
+                Author.name.asc(),
+                Author.id.asc(),
+            )
+            .offset(offset)
+            .limit(limit)
+        )
+        return [
+            AuthorRecord(author=row[0], paper_count=row[1])
+            for row in self.session.execute(statement)
+        ]
 
     def get_by_id(self, author_id: str) -> AuthorRecord | None:
         statement = (

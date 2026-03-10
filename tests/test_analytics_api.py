@@ -112,25 +112,3 @@ def test_publication_trends_endpoint_supports_year_filters(client: TestClient) -
             "average_citation_count": 12.0,
         }
     ]
-
-
-def test_collaborations_endpoint_returns_coauthor_pairs(client: TestClient) -> None:
-    response = client.get("/analytics/collaborations")
-
-    assert response.status_code == 200
-    assert response.json() == [
-        {
-            "author_a_id": "https://openalex.org/A1",
-            "author_a_name": "Alice Smith",
-            "author_b_id": "https://openalex.org/A2",
-            "author_b_name": "Bob Jones",
-            "shared_paper_count": 1,
-        },
-        {
-            "author_a_id": "https://openalex.org/A1",
-            "author_a_name": "Alice Smith",
-            "author_b_id": "https://openalex.org/A3",
-            "author_b_name": "Cara Patel",
-            "shared_paper_count": 1,
-        },
-    ]

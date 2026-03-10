@@ -23,11 +23,3 @@ class PublicationTrendItem(BaseModel):
     paper_count: int
     total_citation_count: int
     average_citation_count: float
-
-
-class CollaborationPairItem(BaseModel):
-    author_a_id: str
-    author_a_name: str
-    author_b_id: str
-    author_b_name: str
-    shared_paper_count: int

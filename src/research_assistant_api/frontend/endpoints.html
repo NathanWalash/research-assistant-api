@@ -11,70 +11,9 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="/app/static/app.css" />
-    <script type="module" src="/app/static/endpoints.js"></script>
+    <script type="module" src="/app/static/main.js"></script>
   </head>
   <body data-page="endpoints">
-    <div class="page-shell">
-      <header class="workspace-nav">
-        <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">
-            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
-          </p>
-          <p class="brand-subtitle">Endpoint reference</p>
-        </a>
-        <nav class="nav-actions" aria-label="Primary">
-          <a class="nav-link" data-page-link="home" href="/app">Home</a>
-          <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
-          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
-          <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
-          <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-        </nav>
-        <div class="nav-meta">
-          <a class="button secondary compact" data-signin-link href="/app/login">Sign in</a>
-          <a class="button primary compact" data-register-link href="/app/register">
-            Create account
-          </a>
-          <a class="button secondary compact hidden" data-account-link href="/app/account">
-            My account
-          </a>
-          <button class="button danger compact hidden" data-logout-button type="button">
-            Sign out
-          </button>
-        </div>
-      </header>
-
-      <main class="workspace-stack">
-        <section class="section-header">
-          <div>
-            <p class="section-eyebrow">API reference</p>
-            <h1 class="page-title">Full endpoint inventory</h1>
-          </div>
-        </section>
-
-        <section class="surface-card">
-          <p class="helper-text">
-            This table is generated from the backend OpenAPI schema, so it always includes every API endpoint.
-          </p>
-          <p id="endpoints-status" class="global-status hidden" aria-live="polite"></p>
-          <div class="api-table-wrap">
-            <table class="api-table">
-              <thead>
-                <tr>
-                  <th>Method</th>
-                  <th>Endpoint</th>
-                  <th>Auth</th>
-                  <th>Description</th>
-                </tr>
-              </thead>
-              <tbody id="api-endpoint-body">
-                <tr>
-                  <td colspan="4">Loading endpoint inventory...</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-    </div>
+    <div id="app-root"></div>
   </body>
 </html>
