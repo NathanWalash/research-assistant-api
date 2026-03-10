@@ -6,30 +6,46 @@ import {
   encodePathSegment,
   formatDate,
   formatNumber,
-  getQueryParam,
   getSessionUser,
   populateSelect,
   renderEmpty,
+  setButtonPending,
   setStatus,
+  toErrorMessage,
+  updateQueryParams,
 } from "/app/static/shared.js";
+
+const SEARCH_LIMIT = 12;
 
 const state = {
   selectedPaper: null,
   projects: [],
+  searchResults: [],
+  search: {
+    query: "",
+    topic: "",
+    year: "",
+    citationCount: "0",
+    offset: 0,
+    hasMore: false,
+  },
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
   const statusElement = document.querySelector("#page-status");
   const searchForm = document.querySelector("#search-form");
   const clearButton = document.querySelector("#clear-search");
-  const similarButton = document.querySelector("#load-similar");
-  const citationsButton = document.querySelector("#load-citations");
-  const pathForm = document.querySelector("#citation-path-form");
+  const previousButton = document.querySelector("#search-prev");
+  const nextButton = document.querySelector("#search-next");
   const saveForm = document.querySelector("#save-to-project-form");
   const annotationForm = document.querySelector("#annotation-form");
   const annotationCancelButton = document.querySelector("#annotation-cancel");
+  const citationPathForm = document.querySelector("#citation-path-form");
 
   const { user } = await bootstrapPage();
+  hydrateSearchStateFromUrl();
+  applySearchStateToInputs();
+  await loadSearchFilters();
 
   if (user) {
     await loadProjects();
@@ -37,37 +53,38 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   searchForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    await runSearch();
+    state.search.offset = 0;
+    await runSearch({ autoSelectFirst: true });
   });
 
   clearButton.addEventListener("click", async () => {
     searchForm.reset();
+    state.search = {
+      query: "",
+      topic: "",
+      year: "",
+      citationCount: "0",
+      offset: 0,
+      hasMore: false,
+    };
+    state.searchResults = [];
+    await runSearch({ autoSelectFirst: true });
+  });
+
+  previousButton?.addEventListener("click", async () => {
+    if (state.search.offset <= 0) {
+      return;
+    }
+    state.search.offset = Math.max(state.search.offset - SEARCH_LIMIT, 0);
     await runSearch();
   });
 
-  similarButton.addEventListener("click", async () => {
-    if (!state.selectedPaper) {
-      setStatus(statusElement, "Choose a paper first.", "error");
+  nextButton?.addEventListener("click", async () => {
+    if (!state.search.hasMore) {
       return;
     }
-    await loadSimilarPapers(state.selectedPaper.id);
-  });
-
-  citationsButton.addEventListener("click", async () => {
-    if (!state.selectedPaper) {
-      setStatus(statusElement, "Choose a paper first.", "error");
-      return;
-    }
-    await loadCitations(state.selectedPaper.id);
-  });
-
-  pathForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    if (!state.selectedPaper) {
-      setStatus(statusElement, "Choose a source paper first.", "error");
-      return;
-    }
-    await loadCitationPath();
+    state.search.offset += SEARCH_LIMIT;
+    await runSearch();
   });
 
   if (saveForm) {
@@ -82,22 +99,25 @@ document.addEventListener("DOMContentLoaded", async () => {
         setStatus(statusElement, "Create or select a project first.", "error");
         return;
       }
+      const submitButton = saveForm.querySelector('button[type="submit"]');
 
       try {
+        setButtonPending(submitButton, true, "Adding...");
         await apiRequest(`/projects/${projectId}/reading-list`, {
           method: "POST",
           auth: true,
           body: {
             paper_id: state.selectedPaper.id,
             priority: document.querySelector("#save-priority").value,
-            notes: document.querySelector("#save-notes").value.trim() || null,
+            notes: null,
           },
         });
         saveForm.reset();
-        document.querySelector("#save-priority").value = "medium";
         setStatus(statusElement, "Paper added to the selected project.", "success");
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
+      } finally {
+        setButtonPending(submitButton, false);
       }
     });
   }
@@ -117,8 +137,14 @@ document.addEventListener("DOMContentLoaded", async () => {
         setStatus(statusElement, "Annotation text cannot be empty.", "error");
         return;
       }
+      const submitButton = annotationForm.querySelector("#annotation-submit");
 
       try {
+        setButtonPending(
+          submitButton,
+          true,
+          annotationId ? "Updating..." : "Saving...",
+        );
         if (annotationId) {
           await apiRequest(`/annotations/${annotationId}`, {
             method: "PATCH",
@@ -137,7 +163,9 @@ document.addEventListener("DOMContentLoaded", async () => {
         resetAnnotationEditor();
         await loadAnnotations();
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
+      } finally {
+        setButtonPending(submitButton, false);
       }
     });
   }
@@ -146,13 +174,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     resetAnnotationEditor();
   });
 
-  const requestedPaper = getQueryParam("paper");
+  citationPathForm?.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    await loadCitationPath(statusElement);
+  });
+
+  const requestedPaper = new URLSearchParams(window.location.search).get("paper");
   if (requestedPaper) {
     await loadPaperDetail(requestedPaper);
-    await runSearch();
-  } else {
-    await runSearch();
   }
+  await runSearch({ autoSelectFirst: !requestedPaper });
 });
 
 async function loadProjects() {
@@ -171,64 +202,88 @@ async function loadProjects() {
   }
 }
 
-async function runSearch(prefillQuery = null) {
+async function loadSearchFilters() {
+  try {
+    const [topics, trends] = await Promise.all([
+      apiRequest("/topics?limit=50"),
+      apiRequest("/analytics/trends?start_year=2018"),
+    ]);
+    const years = [...new Set(trends.map((item) => String(item.publication_year)))].sort(
+      (left, right) => Number(right) - Number(left),
+    );
+
+    populateSelect(
+      document.querySelector("#search-topic"),
+      [{ value: "", label: "Any topic" }].concat(
+        topics.map((topic) => ({ value: topic.name, label: topic.name })),
+      ),
+    );
+    populateSelect(
+      document.querySelector("#search-year"),
+      [{ value: "", label: "Any year" }].concat(
+        years.map((year) => ({ value: year, label: year })),
+      ),
+    );
+    applySearchStateToInputs();
+  } catch {
+    populateSelect(document.querySelector("#search-topic"), [
+      { value: "", label: "Any topic" },
+    ]);
+    populateSelect(document.querySelector("#search-year"), [
+      { value: "", label: "Any year" },
+    ]);
+  }
+}
+
+async function runSearch({ autoSelectFirst = false } = {}) {
   const resultsContainer = document.querySelector("#search-results");
-  const query = prefillQuery ?? document.querySelector("#search-query").value.trim();
-  const topic = document.querySelector("#search-topic").value.trim();
-  const year = document.querySelector("#search-year").value.trim();
-  const citationCount = document.querySelector("#search-citations").value.trim();
+  const summaryElement = document.querySelector("#search-summary");
+  syncSearchStateFromInputs();
   const params = new URLSearchParams();
 
-  if (query) {
-    params.set("query", query);
+  if (state.search.query) {
+    params.set("query", state.search.query);
   }
-  if (topic) {
-    params.set("topic", topic);
+  if (state.search.topic) {
+    params.set("topic", state.search.topic);
   }
-  if (year) {
-    params.set("year", year);
+  if (state.search.year) {
+    params.set("year", state.search.year);
   }
-  if (citationCount) {
-    params.set("citation_count", citationCount);
+  if (state.search.citationCount) {
+    params.set("citation_count", state.search.citationCount);
   }
-  params.set("limit", "12");
+  params.set("limit", String(SEARCH_LIMIT));
+  params.set("offset", String(state.search.offset));
 
   try {
     const papers = await apiRequest(`/papers/search?${params.toString()}`);
+    state.searchResults = papers;
+    state.search.hasMore = papers.length === SEARCH_LIMIT;
+
     if (!papers.length) {
       renderEmpty(resultsContainer, "No papers matched the current filters.");
+      summaryElement.textContent = "No results for the current filters.";
+      updateSearchPager();
+      syncUrlState();
       return;
     }
 
-    resultsContainer.replaceChildren(
-      ...papers.map((paper) => {
-        const item = createResultItem({
-          title: paper.title,
-          href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
-          selected: state.selectedPaper?.id === paper.id,
-          badges: [paper.topic?.name ?? "No topic"],
-          meta: [
-            `${paper.publication_year}`,
-            `${formatNumber(paper.citation_count)} citations`,
-            paper.journal ?? "No journal",
-          ],
-        });
-        appendActions(item, [
-          {
-            label: "Inspect",
-            onClick: async () => {
-              await loadPaperDetail(paper.id);
-              await runSearch();
-              await loadSimilarPapers(paper.id);
-              await loadCitations(paper.id);
-            },
-          },
-        ]);
-        return item;
-      }),
-    );
+    if (
+      autoSelectFirst &&
+      (!state.selectedPaper || !papers.some((paper) => paper.id === state.selectedPaper.id))
+    ) {
+      await loadPaperDetail(papers[0].id);
+    }
+
+    summaryElement.textContent = `Showing ${papers.length} result(s), offset ${state.search.offset}.`;
+    renderSearchResults();
+    updateSearchPager();
+    syncUrlState();
   } catch (error) {
-    renderEmpty(resultsContainer, error.message);
+    renderEmpty(resultsContainer, toErrorMessage(error));
+    summaryElement.textContent = "Search failed.";
+    updateSearchPager();
   }
 }
 
@@ -236,32 +291,40 @@ async function loadPaperDetail(paperId) {
   const titleElement = document.querySelector("#paper-title");
   const topicPill = document.querySelector("#paper-topic-pill");
   const metaContainer = document.querySelector("#paper-meta");
+  const abstractPanel = document.querySelector("#paper-abstract-panel");
   const abstractContainer = document.querySelector("#paper-abstract");
+  const abstractEmptyElement = document.querySelector("#paper-abstract-empty");
   const authorsContainer = document.querySelector("#paper-authors");
 
   try {
     const paper = await apiRequest(`/papers/${encodePathSegment(paperId)}`);
     state.selectedPaper = paper;
-    window.history.replaceState(
-      null,
-      "",
-      `/app/discover?paper=${encodeURIComponent(paper.id)}`,
-    );
     titleElement.textContent = paper.title;
     topicPill.textContent = paper.topic?.name ?? "No topic";
     topicPill.classList.toggle("hidden", !paper.topic?.name);
 
     metaContainer.replaceChildren(
       createMetaCard("Paper ID", paper.id),
-      createMetaCard("Year", String(paper.publication_year)),
+      createMetaCard("Published", formatDate(paper.publication_date)),
       createMetaCard("Citations", formatNumber(paper.citation_count)),
+      createMetaCard("Year", String(paper.publication_year)),
       createMetaCard("Journal", paper.journal ?? "Not available"),
-      createMetaCard("DOI", paper.doi ?? "Not available"),
-      createMetaCard("Language", paper.language ?? "Not available"),
     );
 
-    abstractContainer.classList.toggle("empty-state", !paper.abstract);
-    abstractContainer.textContent = paper.abstract ?? "No abstract is available for this paper.";
+    const abstractText =
+      typeof paper.abstract === "string" ? paper.abstract.trim() : "";
+    if (abstractText) {
+      abstractPanel.classList.remove("hidden");
+      abstractPanel.open = false;
+      abstractContainer.textContent = abstractText;
+      abstractContainer.classList.remove("empty-state");
+      abstractEmptyElement.classList.add("hidden");
+    } else {
+      abstractPanel.classList.add("hidden");
+      abstractContainer.textContent = "";
+      abstractEmptyElement.textContent = "No abstract is available for this paper.";
+      abstractEmptyElement.classList.remove("hidden");
+    }
 
     if (!paper.authors.length) {
       renderEmpty(authorsContainer, "No authorship metadata is available.");
@@ -285,10 +348,21 @@ async function loadPaperDetail(paperId) {
     } else {
       renderEmpty(document.querySelector("#annotation-results"), "Sign in to manage annotations.");
     }
+    renderSearchResults();
+    renderEmpty(
+      document.querySelector("#citation-path-results"),
+      "Enter a target paper id and run path finding.",
+    );
+    syncUrlState();
+    await Promise.all([loadSimilarPapers(paper.id), loadCitations(paper.id)]);
   } catch (error) {
+    state.selectedPaper = null;
     titleElement.textContent = "Paper lookup failed";
-    abstractContainer.textContent = error.message;
-    abstractContainer.classList.add("empty-state");
+    abstractPanel.classList.add("hidden");
+    abstractContainer.textContent = "";
+    abstractEmptyElement.textContent = toErrorMessage(error);
+    abstractEmptyElement.classList.remove("hidden");
+    syncUrlState();
   }
 }
 
@@ -316,7 +390,7 @@ async function loadSimilarPapers(paperId) {
       ),
     );
   } catch (error) {
-    renderEmpty(container, error.message);
+    renderEmpty(container, toErrorMessage(error));
   }
 }
 
@@ -352,36 +426,7 @@ async function loadCitations(paperId) {
     }
     container.replaceChildren(...items);
   } catch (error) {
-    renderEmpty(container, error.message);
-  }
-}
-
-async function loadCitationPath() {
-  const container = document.querySelector("#citation-path-results");
-  const targetId = document.querySelector("#citation-target-id").value.trim();
-  const maxDepth = document.querySelector("#citation-max-depth").value || "6";
-
-  if (!targetId) {
-    renderEmpty(container, "Enter a target paper ID to search for a path.");
-    return;
-  }
-
-  try {
-    const pathData = await apiRequest(
-      `/papers/${encodePathSegment(state.selectedPaper.id)}/path/${encodePathSegment(targetId)}?max_depth=${maxDepth}`,
-    );
-    container.replaceChildren(
-      ...pathData.path.map((paper, index) =>
-        createResultItem({
-          title: `${index + 1}. ${paper.title}`,
-          href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
-          badges: [index === 0 ? "Source" : index === pathData.path.length - 1 ? "Target" : "Bridge"],
-          meta: [`${paper.publication_year}`, `${formatNumber(paper.citation_count)} citations`],
-        }),
-      ),
-    );
-  } catch (error) {
-    renderEmpty(container, error.message);
+    renderEmpty(container, toErrorMessage(error));
   }
 }
 
@@ -434,7 +479,66 @@ async function loadAnnotations() {
       }),
     );
   } catch (error) {
-    renderEmpty(container, error.message);
+    renderEmpty(container, toErrorMessage(error));
+  }
+}
+
+async function loadCitationPath(statusElement) {
+  const container = document.querySelector("#citation-path-results");
+  if (!state.selectedPaper) {
+    renderEmpty(container, "Select a source paper before finding a path.");
+    return;
+  }
+
+  const targetPaperId = document.querySelector("#citation-target-paper").value.trim();
+  if (!targetPaperId) {
+    renderEmpty(container, "Enter a target paper id.");
+    return;
+  }
+
+  const maxDepth = document.querySelector("#citation-max-depth").value;
+  const submitButton = document
+    .querySelector("#citation-path-form")
+    .querySelector('button[type="submit"]');
+
+  try {
+    setButtonPending(submitButton, true, "Finding...");
+    const pathData = await apiRequest(
+      `/papers/${encodePathSegment(state.selectedPaper.id)}/path/${encodePathSegment(
+        targetPaperId,
+      )}?max_depth=${encodeURIComponent(maxDepth)}`,
+    );
+    if (!pathData.path.length) {
+      renderEmpty(container, "No path data returned.");
+      return;
+    }
+    container.replaceChildren(
+      ...pathData.path.map((paper, index) =>
+        createResultItem({
+          title: `${index === 0 ? "Source" : `Step ${index}`}: ${paper.title}`,
+          href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
+          badges: [
+            index === pathData.path.length - 1 ? "Target" : "Intermediate",
+          ],
+          meta: [
+            paper.id,
+            `${paper.publication_year}`,
+            `${formatNumber(paper.citation_count)} citations`,
+          ],
+        }),
+      ),
+    );
+    setStatus(
+      statusElement,
+      `Citation path loaded (${pathData.path_length} hop${pathData.path_length === 1 ? "" : "s"}).`,
+      "success",
+    );
+  } catch (error) {
+    const message = toErrorMessage(error);
+    renderEmpty(container, message);
+    setStatus(statusElement, message, "error");
+  } finally {
+    setButtonPending(submitButton, false);
   }
 }
 
@@ -454,4 +558,84 @@ function createMetaCard(label, value) {
   description.textContent = value;
   wrapper.append(term, description);
   return wrapper;
+}
+
+function renderSearchResults() {
+  const resultsContainer = document.querySelector("#search-results");
+  if (!state.searchResults.length) {
+    renderEmpty(resultsContainer, "No papers matched the current filters.");
+    return;
+  }
+  resultsContainer.replaceChildren(
+    ...state.searchResults.map((paper) => {
+      const item = createResultItem({
+        title: paper.title,
+        href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
+        selected: state.selectedPaper?.id === paper.id,
+        badges: [paper.topic?.name ?? "No topic"],
+        meta: [
+          `${paper.publication_year}`,
+          `${formatNumber(paper.citation_count)} citations`,
+          paper.journal ?? "No journal",
+        ],
+      });
+      appendActions(item, [
+        {
+          label: "Open",
+          onClick: async () => {
+            await loadPaperDetail(paper.id);
+          },
+        },
+      ]);
+      return item;
+    }),
+  );
+}
+
+function updateSearchPager() {
+  const previousButton = document.querySelector("#search-prev");
+  const nextButton = document.querySelector("#search-next");
+  const pageElement = document.querySelector("#search-page");
+  const pageNumber = Math.floor(state.search.offset / SEARCH_LIMIT) + 1;
+  previousButton.disabled = state.search.offset <= 0;
+  nextButton.disabled = !state.search.hasMore;
+  pageElement.textContent = `Page ${pageNumber}`;
+}
+
+function syncSearchStateFromInputs() {
+  state.search.query = document.querySelector("#search-query").value.trim();
+  state.search.topic = document.querySelector("#search-topic").value.trim();
+  state.search.year = document.querySelector("#search-year").value.trim();
+  state.search.citationCount = document
+    .querySelector("#search-citation-count")
+    .value.trim();
+}
+
+function hydrateSearchStateFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  state.search.query = params.get("query") ?? "";
+  state.search.topic = params.get("topic") ?? "";
+  state.search.year = params.get("year") ?? "";
+  state.search.citationCount = params.get("citation_count") ?? "0";
+  const offsetValue = params.get("offset") ?? "0";
+  const parsedOffset = Number.parseInt(offsetValue, 10);
+  state.search.offset = Number.isFinite(parsedOffset) && parsedOffset >= 0 ? parsedOffset : 0;
+}
+
+function applySearchStateToInputs() {
+  document.querySelector("#search-query").value = state.search.query;
+  document.querySelector("#search-topic").value = state.search.topic;
+  document.querySelector("#search-year").value = state.search.year;
+  document.querySelector("#search-citation-count").value = state.search.citationCount;
+}
+
+function syncUrlState() {
+  updateQueryParams({
+    query: state.search.query || null,
+    topic: state.search.topic || null,
+    year: state.search.year || null,
+    citation_count: state.search.citationCount || null,
+    offset: state.search.offset ? state.search.offset : null,
+    paper: state.selectedPaper?.id ?? null,
+  });
 }

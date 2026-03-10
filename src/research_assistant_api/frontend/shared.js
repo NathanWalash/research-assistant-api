@@ -9,6 +9,16 @@ export class ApiError extends Error {
   }
 }
 
+export function toErrorMessage(error, fallback = "Request failed.") {
+  if (error instanceof ApiError) {
+    return error.message;
+  }
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
 export function getSession() {
   const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
   if (!raw) {
@@ -36,8 +46,40 @@ export function getSessionUser() {
   return getSession()?.user ?? null;
 }
 
+export function getAccessTokenExpiry() {
+  const token = getSession()?.access_token;
+  if (!token) {
+    return null;
+  }
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return null;
+  }
+  try {
+    const payloadText = atob(parts[1].replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(payloadText);
+    if (typeof payload.exp !== "number") {
+      return null;
+    }
+    return new Date(payload.exp * 1000);
+  } catch {
+    return null;
+  }
+}
+
 export function encodePathSegment(value) {
   return encodeURIComponent(value);
+}
+
+export function setButtonPending(button, pending, pendingLabel = "Working...") {
+  if (!button) {
+    return;
+  }
+  if (!button.dataset.defaultLabel) {
+    button.dataset.defaultLabel = button.textContent ?? "";
+  }
+  button.disabled = pending;
+  button.textContent = pending ? pendingLabel : button.dataset.defaultLabel;
 }
 
 export async function apiRequest(
@@ -153,13 +195,30 @@ export function syncAuthChrome() {
   const session = getSession();
   const user = session?.user ?? null;
   const authenticated = Boolean(session?.access_token && user);
+  const accountLabel = authenticated ? getUserDisplayName(user.email) : "My account";
 
   document.querySelectorAll("[data-user-summary]").forEach((element) => {
-    element.textContent = authenticated ? user.email : "Guest mode";
+    element.textContent = authenticated ? accountLabel : "Guest mode";
+    element.title = authenticated ? user.email : "Not signed in";
   });
 
-  document.querySelectorAll("[data-auth-link]").forEach((element) => {
+  document.querySelectorAll("[data-signin-link]").forEach((element) => {
     element.classList.toggle("hidden", authenticated);
+  });
+
+  document.querySelectorAll("[data-register-link]").forEach((element) => {
+    element.classList.toggle("hidden", authenticated);
+  });
+
+  document.querySelectorAll("[data-account-link]").forEach((element) => {
+    element.classList.toggle("hidden", !authenticated);
+    element.textContent = accountLabel;
+    element.title = authenticated ? `Signed in as ${user.email}` : "My account";
+    if (document.body.dataset.page === "account") {
+      element.setAttribute("aria-current", "page");
+    } else {
+      element.removeAttribute("aria-current");
+    }
   });
 
   document.querySelectorAll("[data-logout-button]").forEach((element) => {
@@ -177,6 +236,27 @@ export function syncAuthChrome() {
     .forEach((element) => {
       element.classList.toggle("visible", !authenticated);
     });
+}
+
+function getUserDisplayName(email) {
+  if (typeof email !== "string" || !email.includes("@")) {
+    return "My account";
+  }
+  const localPart = email.split("@")[0].trim();
+  if (!localPart) {
+    return "My account";
+  }
+  const words = localPart
+    .replace(/[._-]+/g, " ")
+    .split(" ")
+    .map((word) => word.trim())
+    .filter(Boolean);
+  if (!words.length) {
+    return "My account";
+  }
+  return words
+    .map((word) => `${word[0].toUpperCase()}${word.slice(1).toLowerCase()}`)
+    .join(" ");
 }
 
 export function setStatus(element, message, tone = "neutral") {
@@ -211,6 +291,20 @@ export function formatDate(value) {
   }
   return new Intl.DateTimeFormat("en-GB", {
     dateStyle: "medium",
+  }).format(date);
+}
+
+export function formatDateTime(value) {
+  if (!value) {
+    return "Not available";
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+  return new Intl.DateTimeFormat("en-GB", {
+    dateStyle: "medium",
+    timeStyle: "short",
   }).format(date);
 }
 
@@ -320,4 +414,18 @@ export function populateSelect(select, options, placeholder = "Choose an option"
 
 export function getQueryParam(name) {
   return new URLSearchParams(window.location.search).get(name);
+}
+
+export function updateQueryParams(values) {
+  const params = new URLSearchParams(window.location.search);
+  Object.entries(values).forEach(([key, value]) => {
+    if (value === null || value === undefined || value === "") {
+      params.delete(key);
+    } else {
+      params.set(key, String(value));
+    }
+  });
+  const next = params.toString();
+  const path = next ? `${window.location.pathname}?${next}` : window.location.pathname;
+  window.history.replaceState(null, "", path);
 }

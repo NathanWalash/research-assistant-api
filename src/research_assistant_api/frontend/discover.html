@@ -17,20 +17,28 @@
     <div class="page-shell">
       <header class="workspace-nav">
         <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">Research Assistant</p>
+          <p class="brand-title">
+            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
+          </p>
           <p class="brand-subtitle">Discovery workspace</p>
         </a>
         <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="home" href="/app">Home</a>
           <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
           <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
           <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
         </nav>
         <div class="nav-meta">
-          <span class="session-badge" data-user-summary>Guest mode</span>
-          <a class="button secondary compact" data-auth-link href="/app/login">Sign in</a>
-          <button class="button ghost compact hidden" data-logout-button type="button">
-            Log out
+          <a class="button secondary compact" data-signin-link href="/app/login">Sign in</a>
+          <a class="button primary compact" data-register-link href="/app/register">
+            Create account
+          </a>
+          <a class="button secondary compact hidden" data-account-link href="/app/account">
+            My account
+          </a>
+          <button class="button danger compact hidden" data-logout-button type="button">
+            Sign out
           </button>
         </div>
       </header>
@@ -41,46 +49,64 @@
         <section class="section-header">
           <div>
             <p class="section-eyebrow">Discovery</p>
-            <h1 class="page-title">Search the Leeds corpus and inspect one paper deeply.</h1>
+            <h1 class="page-title">Search papers and inspect graph context clearly.</h1>
           </div>
-          <div class="button-row">
-            <a class="button ghost compact" href="/openapi.json" target="_blank" rel="noreferrer">
-              OpenAPI
-            </a>
-          </div>
+          <a class="button ghost compact" href="/app/endpoints">View endpoint map</a>
         </section>
 
         <section class="workspace-grid">
-          <article class="surface-card">
-            <h2>Search papers</h2>
+          <article class="surface-card discover-search-card">
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Search</p>
+                <h2>Find papers</h2>
+              </div>
+            </div>
+            <p class="helper-text">
+              Enter a topic or keywords, then filter by year and citations to search the corpus.
+            </p>
             <form id="search-form" class="stack-form">
               <label>
-                <span>Query</span>
-                <input id="search-query" type="text" placeholder="knowledge graphs" />
+                <span>Topic or keywords</span>
+                <input
+                  id="search-query"
+                  type="text"
+                  placeholder="e.g. knowledge graphs, retrieval, machine learning"
+                />
               </label>
               <div class="inline-grid">
                 <label>
                   <span>Topic</span>
-                  <input id="search-topic" type="text" placeholder="Machine Learning" />
+                  <select id="search-topic"></select>
                 </label>
                 <label>
                   <span>Year</span>
-                  <input id="search-year" type="number" min="1900" max="2100" />
+                  <select id="search-year"></select>
                 </label>
                 <label>
-                  <span>Min citations</span>
-                  <input id="search-citations" type="number" min="0" />
+                  <span>Minimum citations</span>
+                  <input id="search-citation-count" type="number" min="0" step="1" value="0" />
                 </label>
               </div>
-              <div class="button-row">
+              <div class="button-row discover-search-actions">
                 <button class="button primary" type="submit">Run search</button>
                 <button class="button ghost" id="clear-search" type="button">Clear</button>
               </div>
             </form>
-            <div id="search-results" class="result-list"></div>
+            <p id="search-summary" class="helper-text">Loading search state.</p>
+            <div id="search-results" class="result-list discover-scroll-window"></div>
+            <div class="toolbar">
+              <button class="button ghost compact" id="search-prev" type="button">
+                Previous
+              </button>
+              <p id="search-page" class="helper-text">Page 1</p>
+              <button class="button ghost compact" id="search-next" type="button">
+                Next
+              </button>
+            </div>
           </article>
 
-          <article class="surface-card">
+          <article class="surface-card discover-paper-card">
             <div class="card-header">
               <div>
                 <p class="section-eyebrow">Selected paper</p>
@@ -88,82 +114,43 @@
               </div>
               <span id="paper-topic-pill" class="pill hidden"></span>
             </div>
-            <div id="paper-meta" class="meta-grid"></div>
-            <div id="paper-abstract" class="prose-block empty-state">
-              Paper detail will appear here after you inspect a search result.
-            </div>
-            <div id="paper-authors" class="result-list compact-list"></div>
+            <div id="paper-meta" class="meta-grid discover-meta-grid"></div>
 
-            <section class="toolbar">
-              <button id="load-similar" class="button secondary compact" type="button">
-                Load similar papers
-              </button>
-              <button id="load-citations" class="button secondary compact" type="button">
-                Load citation neighbourhood
-              </button>
-            </section>
-
-            <div class="split-columns">
-              <section>
-                <h3>Similar papers</h3>
-                <div id="similar-results" class="result-list compact-list"></div>
-              </section>
-              <section>
-                <h3>Citation neighbourhood</h3>
-                <div id="citation-results" class="result-list compact-list"></div>
-              </section>
-            </div>
+            <details id="paper-abstract-panel" class="paper-abstract-panel hidden">
+              <summary>Abstract</summary>
+              <div id="paper-abstract" class="prose-block"></div>
+            </details>
+            <p id="paper-abstract-empty" class="helper-text">Select a paper to view its abstract.</p>
 
             <section class="surface-subsection">
-              <div class="card-header">
-                <div>
-                  <h3>Citation path explorer</h3>
-                  <p class="helper-text">
-                    Find a directed shortest path inside the Leeds citation subgraph.
-                  </p>
-                </div>
-              </div>
-              <form id="citation-path-form" class="stack-form">
-                <label>
-                  <span>Target paper ID</span>
-                  <input
-                    id="citation-target-id"
-                    type="text"
-                    placeholder="https://openalex.org/W1234567890"
-                  />
-                </label>
-                <label>
-                  <span>Max depth</span>
-                  <input id="citation-max-depth" type="number" min="1" max="12" value="6" />
-                </label>
-                <button class="button secondary compact" type="submit">Find path</button>
-              </form>
-              <div id="citation-path-results" class="result-list compact-list"></div>
+              <h3>Authors</h3>
+              <div id="paper-authors" class="result-list compact-list discover-scroll-window authors-window"></div>
             </section>
           </article>
         </section>
 
-        <section class="workspace-grid">
-          <article class="surface-card">
-            <div class="card-header">
-              <div>
-                <p class="section-eyebrow">Save to project</p>
-                <h2>Capture the selected paper into a workflow.</h2>
+        <section class="surface-card">
+          <div class="card-header">
+            <div>
+              <p class="section-eyebrow">Save and annotate</p>
+              <h2>Capture selected papers into your workflow</h2>
+            </div>
+          </div>
+          <div class="split-columns">
+            <section>
+              <h3>Save to project</h3>
+              <div class="callout" data-authenticated-only="false">
+                Sign in to save papers to a project.
               </div>
-            </div>
-            <div class="callout" data-authenticated-only="false">
-              Sign in to save selected papers directly into a project reading list.
-            </div>
-            <form
-              id="save-to-project-form"
-              class="stack-form hidden"
-              data-authenticated-only="true"
-            >
-              <label>
-                <span>Project</span>
-                <select id="save-project-id"></select>
-              </label>
-              <div class="inline-grid">
+              <form
+                id="save-to-project-form"
+                class="stack-form hidden"
+                data-authenticated-only="true"
+              >
+                <label>
+                  <span>Project</span>
+                  <select id="save-project-id"></select>
+                </label>
                 <label>
                   <span>Priority</span>
                   <select id="save-priority">
@@ -172,54 +159,92 @@
                     <option value="high">High</option>
                   </select>
                 </label>
-              </div>
-              <label>
-                <span>Notes</span>
-                <textarea
-                  id="save-notes"
-                  rows="3"
-                  placeholder="Why does this paper matter to the project?"
-                ></textarea>
-              </label>
-              <button class="button primary" type="submit">Add selected paper</button>
-            </form>
-          </article>
+                <button class="button primary" type="submit">Add to project</button>
+              </form>
+            </section>
 
-          <article class="surface-card">
-            <div class="card-header">
-              <div>
-                <p class="section-eyebrow">Private annotations</p>
-                <h2>Capture paper-level notes.</h2>
+            <section>
+              <h3>Private notes</h3>
+              <div class="callout" data-authenticated-only="false">
+                Sign in to add notes to this paper.
               </div>
+              <form
+                id="annotation-form"
+                class="stack-form hidden"
+                data-authenticated-only="true"
+              >
+                <input id="annotation-id" type="hidden" />
+                <label>
+                  <span>Note</span>
+                  <textarea
+                    id="annotation-text"
+                    rows="4"
+                    placeholder="Record why this paper matters or what to follow up."
+                  ></textarea>
+                </label>
+                <div class="button-row">
+                  <button class="button primary" type="submit" id="annotation-submit">
+                    Save note
+                  </button>
+                  <button class="button ghost hidden" type="button" id="annotation-cancel">
+                    Cancel edit
+                  </button>
+                </div>
+              </form>
+              <div id="annotation-results" class="result-list compact-list discover-scroll-window notes-window"></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="surface-card discover-graph-card">
+          <div class="card-header">
+            <div>
+              <p class="section-eyebrow">Similarity and citation graph</p>
+              <h2>Embedding neighbours and citation paths</h2>
             </div>
-            <div class="callout" data-authenticated-only="false">
-              Sign in to create, edit, and delete your annotations.
-            </div>
-            <form
-              id="annotation-form"
-              class="stack-form hidden"
-              data-authenticated-only="true"
-            >
-              <input id="annotation-id" type="hidden" />
-              <label>
-                <span>Annotation text</span>
-                <textarea
-                  id="annotation-text"
-                  rows="4"
-                  placeholder="Record why this paper matters, gaps to check, or methods to compare."
-                ></textarea>
-              </label>
-              <div class="button-row">
-                <button class="button primary" type="submit" id="annotation-submit">
-                  Save annotation
-                </button>
-                <button class="button ghost hidden" type="button" id="annotation-cancel">
-                  Cancel edit
-                </button>
+          </div>
+          <p class="helper-text">
+            Use these tools to inspect vector-based similarity and citation-graph structure for the selected paper.
+          </p>
+          <div class="split-columns">
+            <section>
+              <h3>Similar papers</h3>
+              <div id="similar-results" class="result-list compact-list discover-scroll-window graph-window"></div>
+            </section>
+            <section>
+              <h3>Citation neighbourhood</h3>
+              <div id="citation-results" class="result-list compact-list discover-scroll-window graph-window"></div>
+            </section>
+          </div>
+          <section class="surface-subsection">
+            <p class="section-eyebrow">Path finder</p>
+            <h3>Find a citation path to another paper id</h3>
+            <form id="citation-path-form" class="stack-form discover-path-form">
+              <div class="inline-grid discover-path-inputs">
+                <label>
+                  <span>Target paper id</span>
+                  <input
+                    id="citation-target-paper"
+                    type="text"
+                    placeholder="https://openalex.org/W..."
+                    autocomplete="off"
+                  />
+                </label>
+                <label>
+                  <span>Max depth</span>
+                  <select id="citation-max-depth">
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="6" selected>6</option>
+                    <option value="8">8</option>
+                    <option value="12">12</option>
+                  </select>
+                </label>
               </div>
+              <button class="button secondary" type="submit">Find path</button>
             </form>
-            <div id="annotation-results" class="result-list compact-list"></div>
-          </article>
+            <div id="citation-path-results" class="result-list compact-list discover-scroll-window path-window"></div>
+          </section>
         </section>
       </main>
     </div>

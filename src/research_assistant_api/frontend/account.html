@@ -17,20 +17,28 @@
     <div class="page-shell">
       <header class="workspace-nav">
         <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">Research Assistant</p>
+          <p class="brand-title">
+            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
+          </p>
           <p class="brand-subtitle">Account workspace</p>
         </a>
         <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="home" href="/app">Home</a>
           <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
           <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
           <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
         </nav>
         <div class="nav-meta">
-          <span class="session-badge" data-user-summary>Guest mode</span>
-          <a class="button secondary compact" data-auth-link href="/app/login">Sign in</a>
-          <button class="button ghost compact hidden" data-logout-button type="button">
-            Log out
+          <a class="button secondary compact" data-signin-link href="/app/login">Sign in</a>
+          <a class="button primary compact" data-register-link href="/app/register">
+            Create account
+          </a>
+          <a class="button secondary compact hidden" data-account-link href="/app/account">
+            My account
+          </a>
+          <button class="button danger compact hidden" data-logout-button type="button">
+            Sign out
           </button>
         </div>
       </header>
@@ -41,7 +49,7 @@
         <section class="section-header">
           <div>
             <p class="section-eyebrow">Account</p>
-            <h1 class="page-title">Check session state and your saved workspace at a glance.</h1>
+            <h1 class="page-title">Check your session and jump back into the workspace.</h1>
           </div>
         </section>
 
@@ -67,16 +75,26 @@
                 <dd data-account-created>Not available</dd>
               </div>
               <div>
+                <dt>Token expires</dt>
+                <dd data-account-token-expiry>Not available</dd>
+              </div>
+              <div>
                 <dt>Frontend</dt>
                 <dd>Served by FastAPI at <code>/app</code></dd>
               </div>
             </dl>
             <div class="button-row">
-              <a class="button secondary compact" href="/app/login" data-auth-link>
+              <a class="button secondary compact" href="/app/login" data-signin-link>
                 Sign in
               </a>
-              <button class="button ghost compact hidden" type="button" data-logout-button>
-                Log out
+              <a class="button primary compact" data-register-link href="/app/register">
+                Create account
+              </a>
+              <a class="button secondary compact hidden" data-account-link href="/app/account">
+                My account
+              </a>
+              <button class="button danger compact hidden" type="button" data-logout-button>
+                Sign out
               </button>
             </div>
           </article>
@@ -84,19 +102,27 @@
           <article class="surface-card">
             <div class="card-header">
               <div>
-                <p class="section-eyebrow">Deployment</p>
-                <h2>How the UI is served</h2>
+                <p class="section-eyebrow">System</p>
+                <h2>Runtime status</h2>
               </div>
             </div>
-            <p class="prose-block">
-              This frontend is static and lives inside the same FastAPI service as the API.
-              When you deploy to Railway, the UI is available from the same public domain,
-              so no extra frontend hosting layer is required.
-            </p>
+            <dl class="summary-list">
+              <div>
+                <dt>Health</dt>
+                <dd data-account-health>Loading</dd>
+              </div>
+              <div>
+                <dt>Environment</dt>
+                <dd data-account-environment>Loading</dd>
+              </div>
+            </dl>
+            <div class="surface-subsection">
+              <h3>Quick actions</h3>
+            </div>
             <div class="link-list">
-              <a href="/docs" target="_blank" rel="noreferrer">Swagger UI</a>
-              <a href="/openapi.json" target="_blank" rel="noreferrer">OpenAPI JSON</a>
-              <a href="/health" target="_blank" rel="noreferrer">Health check</a>
+              <a href="/app/discover">Open discovery</a>
+              <a href="/app/projects">Open projects</a>
+              <a href="/app/analytics">Open analytics</a>
             </div>
           </article>
         </section>
@@ -110,6 +136,16 @@
           </div>
           <div class="callout" data-authenticated-only="false">
             Sign in to view your project summary here.
+          </div>
+          <div id="account-metrics" class="summary-grid hidden" data-authenticated-only="true">
+            <article class="metric-card">
+              <dt>Projects</dt>
+              <dd data-project-count>0</dd>
+            </article>
+            <article class="metric-card">
+              <dt>Latest project</dt>
+              <dd data-project-latest>Not available</dd>
+            </article>
           </div>
           <div
             id="account-projects"

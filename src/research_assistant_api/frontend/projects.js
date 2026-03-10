@@ -3,39 +3,40 @@ import {
   appendActions,
   bootstrapPage,
   createResultItem,
+  formatDateTime,
   formatNumber,
-  getQueryParam,
   renderEmpty,
+  setButtonPending,
   setStatus,
+  toErrorMessage,
+  updateQueryParams,
 } from "/app/static/shared.js";
 
 const state = {
   projects: [],
   selectedProject: null,
+  readingItems: [],
   selectedReadingItem: null,
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
   const statusElement = document.querySelector("#page-status");
-  const userContext = await bootstrapPage();
-  const suggestedPaperId = getQueryParam("paper");
-
-  if (suggestedPaperId) {
-    document.querySelector("#reading-paper-id").value = suggestedPaperId;
-  }
+  const { user } = await bootstrapPage();
 
   wireProjectForm(statusElement);
   wireProjectUpdateForm(statusElement);
-  wireReadingListCreateForm(statusElement);
+  wireProjectActions(statusElement);
   wireReadingListUpdateForm(statusElement);
   wireRecommendationForm(statusElement);
+  wireRecommendationMode();
+  syncRecommendationMode();
 
-  if (!userContext.user) {
+  if (!user) {
     return;
   }
 
   await loadProjects();
-  const requestedProjectId = getQueryParam("project");
+  const requestedProjectId = new URLSearchParams(window.location.search).get("project");
   if (requestedProjectId) {
     const requestedProject = state.projects.find((project) => project.id === requestedProjectId);
     if (requestedProject) {
@@ -56,7 +57,11 @@ function wireProjectForm(statusElement) {
     .querySelector("#project-create-form")
     .addEventListener("submit", async (event) => {
       event.preventDefault();
+      const submitButton = document
+        .querySelector("#project-create-form")
+        .querySelector('button[type="submit"]');
       try {
+        setButtonPending(submitButton, true, "Creating...");
         const project = await apiRequest("/projects", {
           method: "POST",
           auth: true,
@@ -71,7 +76,9 @@ function wireProjectForm(statusElement) {
         await selectProject(project);
         setStatus(statusElement, "Project created.", "success");
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
+      } finally {
+        setButtonPending(submitButton, false);
       }
     });
 }
@@ -82,34 +89,44 @@ function wireProjectUpdateForm(statusElement) {
     .addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!state.selectedProject) {
-        setStatus(statusElement, "Select a project first.", "error");
+        setStatus(statusElement, "Select a project before updating it.", "error");
         return;
       }
 
+      const title = document.querySelector("#selected-project-title-input").value.trim();
+      const description = document
+        .querySelector("#selected-project-description-input")
+        .value.trim();
+      if (!title) {
+        setStatus(statusElement, "Project title cannot be empty.", "error");
+        return;
+      }
+      const submitButton = document
+        .querySelector("#project-update-form")
+        .querySelector('button[type="submit"]');
+
       try {
+        setButtonPending(submitButton, true, "Saving...");
         await apiRequest(`/projects/${state.selectedProject.id}`, {
           method: "PATCH",
           auth: true,
           body: {
-            title: document.querySelector("#selected-project-title-input").value.trim(),
-            description:
-              document.querySelector("#selected-project-description-input").value.trim() ||
-              null,
+            title,
+            description: description || null,
           },
         });
         await loadProjects();
-        const updated = state.projects.find(
-          (project) => project.id === state.selectedProject.id,
-        );
-        if (updated) {
-          await selectProject(updated);
-        }
-        setStatus(statusElement, "Project updated.", "success");
+        await selectProject(state.selectedProject.id);
+        setStatus(statusElement, "Project details updated.", "success");
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
+      } finally {
+        setButtonPending(submitButton, false);
       }
     });
+}
 
+function wireProjectActions(statusElement) {
   document
     .querySelector("#delete-project-button")
     .addEventListener("click", async () => {
@@ -134,37 +151,9 @@ function wireProjectUpdateForm(statusElement) {
             "Create a project to start the workflow.",
           );
         }
+        setStatus(statusElement, "Project deleted.", "success");
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
-      }
-    });
-}
-
-function wireReadingListCreateForm(statusElement) {
-  document
-    .querySelector("#reading-list-create-form")
-    .addEventListener("submit", async (event) => {
-      event.preventDefault();
-      if (!state.selectedProject) {
-        setStatus(statusElement, "Select a project first.", "error");
-        return;
-      }
-      try {
-        await apiRequest(`/projects/${state.selectedProject.id}/reading-list`, {
-          method: "POST",
-          auth: true,
-          body: {
-            paper_id: document.querySelector("#reading-paper-id").value.trim(),
-            priority: document.querySelector("#reading-priority").value,
-            notes: document.querySelector("#reading-notes").value.trim() || null,
-          },
-        });
-        document.querySelector("#reading-list-create-form").reset();
-        document.querySelector("#reading-priority").value = "medium";
-        await loadReadingList();
-        setStatus(statusElement, "Reading-list item added.", "success");
-      } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
       }
     });
 }
@@ -191,7 +180,7 @@ function wireReadingListUpdateForm(statusElement) {
         await loadReadingList();
         setStatus(statusElement, "Reading-list item updated.", "success");
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
       }
     });
 
@@ -209,7 +198,7 @@ function wireReadingListUpdateForm(statusElement) {
         await loadReadingList();
         setStatus(statusElement, "Reading-list item deleted.", "success");
       } catch (error) {
-        setStatus(statusElement, error.message, "error");
+        setStatus(statusElement, toErrorMessage(error), "error");
       }
     });
 }
@@ -225,19 +214,23 @@ function wireRecommendationForm(statusElement) {
       }
 
       const params = new URLSearchParams();
-      params.set("mode", document.querySelector("#recommendation-mode").value);
+      const mode = document.querySelector("#recommendation-mode").value;
+      params.set("mode", mode);
       params.set("limit", "10");
-
-      const semanticWeight = document.querySelector("#semantic-weight").value;
-      const citationWeight = document.querySelector("#citation-weight").value;
-      if (semanticWeight !== "") {
-        params.set("semantic_weight", semanticWeight);
-      }
-      if (citationWeight !== "") {
-        params.set("citation_weight", citationWeight);
-      }
+      params.set(
+        "semantic_weight",
+        document.querySelector("#recommendation-semantic-weight").value,
+      );
+      params.set(
+        "citation_weight",
+        document.querySelector("#recommendation-citation-weight").value,
+      );
+      const submitButton = document
+        .querySelector("#recommendation-form")
+        .querySelector('button[type="submit"]');
 
       try {
+        setButtonPending(submitButton, true, "Scoring...");
         const recommendations = await apiRequest(
           `/projects/${state.selectedProject.id}/recommendations?${params.toString()}`,
           { auth: true },
@@ -245,14 +238,21 @@ function wireRecommendationForm(statusElement) {
         renderRecommendations(recommendations);
         setStatus(statusElement, "Recommendations updated.", "success");
       } catch (error) {
-        renderEmpty(document.querySelector("#recommendation-results"), error.message);
-        setStatus(statusElement, error.message, "error");
+        const message = toErrorMessage(error);
+        renderEmpty(document.querySelector("#recommendation-results"), message);
+        setStatus(statusElement, message, "error");
+      } finally {
+        setButtonPending(submitButton, false);
       }
     });
 }
 
 async function loadProjects() {
   state.projects = await apiRequest("/projects", { auth: true });
+  renderProjectList();
+}
+
+function renderProjectList() {
   const projectList = document.querySelector("#project-list");
   if (!state.projects.length) {
     renderEmpty(projectList, "Create your first project to start the workflow.");
@@ -265,7 +265,7 @@ async function loadProjects() {
         title: project.title,
         description: project.description ?? "No description set.",
         selected: state.selectedProject?.id === project.id,
-        meta: [formatDateTime(project.created_at)],
+        meta: [`Created ${formatDateTime(project.created_at)}`],
       });
       appendActions(item, [
         {
@@ -283,18 +283,33 @@ async function loadProjects() {
 async function selectProject(project) {
   const projectId = typeof project === "string" ? project : project.id;
   state.selectedProject = await apiRequest(`/projects/${projectId}`, { auth: true });
-  document.querySelector("#selected-project-id").value = state.selectedProject.id;
-  document.querySelector("#selected-project-title").textContent = state.selectedProject.title;
-  document.querySelector("#selected-project-title-input").value =
-    state.selectedProject.title;
-  document.querySelector("#selected-project-description-input").value =
-    state.selectedProject.description ?? "";
-  await loadProjects();
+  updateQueryParams({ project: state.selectedProject.id });
+  renderProjectSummary();
+  renderProjectList();
   await loadReadingList();
   renderEmpty(
     document.querySelector("#recommendation-results"),
     "Choose a recommendation mode and run scoring.",
   );
+}
+
+function renderProjectSummary() {
+  if (!state.selectedProject) {
+    clearProjectWorkspace();
+    return;
+  }
+
+  document.querySelector("#selected-project-id").value = state.selectedProject.id;
+  document.querySelector("#selected-project-title-heading").textContent =
+    state.selectedProject.title;
+  document.querySelector("#selected-project-title-input").value =
+    state.selectedProject.title;
+  document.querySelector("#selected-project-description-input").value =
+    state.selectedProject.description ?? "";
+  document.querySelector("#selected-project-meta").textContent = `Created ${formatDateTime(
+    state.selectedProject.created_at,
+  )}`;
+  document.querySelector("#project-discover-link").href = "/app/discover";
 }
 
 async function loadReadingList() {
@@ -304,13 +319,13 @@ async function loadReadingList() {
     return;
   }
 
-  const items = await apiRequest(
+  state.readingItems = await apiRequest(
     `/projects/${state.selectedProject.id}/reading-list`,
     { auth: true },
   );
-  document.querySelector("#selected-project-count").textContent = `${items.length} items`;
+  document.querySelector("#selected-project-count").textContent = `${state.readingItems.length} items`;
 
-  if (!items.length) {
+  if (!state.readingItems.length) {
     state.selectedReadingItem = null;
     clearReadingItemEditor();
     renderEmpty(container, "Add a paper to start the reading list.");
@@ -319,13 +334,31 @@ async function loadReadingList() {
 
   if (
     state.selectedReadingItem &&
-    !items.some((item) => item.id === state.selectedReadingItem.id)
+    !state.readingItems.some((item) => item.id === state.selectedReadingItem.id)
   ) {
     state.selectedReadingItem = null;
   }
 
+  if (!state.selectedReadingItem) {
+    state.selectedReadingItem = state.readingItems[0];
+  }
+  const refreshedSelected = state.readingItems.find(
+    (item) => item.id === state.selectedReadingItem.id,
+  );
+  if (refreshedSelected) {
+    state.selectedReadingItem = refreshedSelected;
+    populateReadingItemEditor(refreshedSelected);
+  }
+  renderReadingList();
+}
+
+function renderReadingList() {
+  const container = document.querySelector("#reading-list-results");
+  if (!state.readingItems.length) {
+    return;
+  }
   container.replaceChildren(
-    ...items.map((item) => {
+    ...state.readingItems.map((item) => {
       const card = createResultItem({
         title: item.paper.title,
         href: `/app/discover?paper=${encodeURIComponent(item.paper.id)}`,
@@ -343,26 +376,13 @@ async function loadReadingList() {
           onClick: () => {
             state.selectedReadingItem = item;
             populateReadingItemEditor(item);
-            void loadReadingList();
+            renderReadingList();
           },
         },
       ]);
       return card;
     }),
   );
-
-  if (!state.selectedReadingItem) {
-    state.selectedReadingItem = items[0];
-    populateReadingItemEditor(items[0]);
-    await loadReadingList();
-    return;
-  }
-
-  const refreshedSelected = items.find((item) => item.id === state.selectedReadingItem.id);
-  if (refreshedSelected) {
-    state.selectedReadingItem = refreshedSelected;
-    populateReadingItemEditor(refreshedSelected);
-  }
 }
 
 function populateReadingItemEditor(item) {
@@ -370,6 +390,9 @@ function populateReadingItemEditor(item) {
   document.querySelector("#selected-reading-item-title").textContent = item.paper.title;
   document.querySelector("#selected-reading-priority").value = item.priority;
   document.querySelector("#selected-reading-notes").value = item.notes ?? "";
+  const link = document.querySelector("#selected-reading-item-link");
+  link.href = `/app/discover?paper=${encodeURIComponent(item.paper.id)}`;
+  link.classList.remove("hidden");
 }
 
 function clearReadingItemEditor() {
@@ -378,15 +401,18 @@ function clearReadingItemEditor() {
     "No reading-list item selected";
   document.querySelector("#selected-reading-priority").value = "medium";
   document.querySelector("#selected-reading-notes").value = "";
+  document.querySelector("#selected-reading-item-link").classList.add("hidden");
 }
 
 function clearProjectWorkspace() {
   state.selectedProject = null;
+  state.readingItems = [];
   state.selectedReadingItem = null;
   document.querySelector("#selected-project-id").value = "";
-  document.querySelector("#selected-project-title").textContent = "No project selected";
+  document.querySelector("#selected-project-title-heading").textContent = "No project selected";
   document.querySelector("#selected-project-title-input").value = "";
   document.querySelector("#selected-project-description-input").value = "";
+  document.querySelector("#selected-project-meta").textContent = "No project selected.";
   document.querySelector("#selected-project-count").textContent = "0 items";
   clearReadingItemEditor();
   renderEmpty(document.querySelector("#reading-list-results"), "Select a project first.");
@@ -408,23 +434,22 @@ function renderRecommendations(recommendations) {
       const item = createResultItem({
         title: paper.title,
         href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
-        description: `${paper.scoring_mode} score ${paper.recommendation_score.toFixed(3)}`,
-        badges: [
-          `Semantic ${paper.semantic_score.toFixed(3)}`,
-          `Citation ${paper.citation_score.toFixed(3)}`,
-        ],
+        description:
+          `${paper.scoring_mode} recommendation. ` +
+          `Semantic ${paper.semantic_score.toFixed(3)}, citation ${paper.citation_score.toFixed(3)}.`,
+        badges: [`Score ${paper.recommendation_score.toFixed(3)}`],
         meta: [
           `${paper.publication_year}`,
           `${formatNumber(paper.citation_count)} citations`,
           paper.topic?.name ?? "No topic",
+          `wS=${paper.semantic_weight.toFixed(2)} wC=${paper.citation_weight.toFixed(2)}`,
         ],
       });
       appendActions(item, [
         {
-          label: "Use paper ID",
+          label: "Open paper",
           onClick: () => {
-            document.querySelector("#reading-paper-id").value = paper.id;
-            document.querySelector("#reading-paper-id").focus();
+            window.location.assign(`/app/discover?paper=${encodeURIComponent(paper.id)}`);
           },
         },
       ]);
@@ -433,13 +458,43 @@ function renderRecommendations(recommendations) {
   );
 }
 
-function formatDateTime(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "Created date unavailable";
+function wireRecommendationMode() {
+  document
+    .querySelector("#recommendation-mode")
+    .addEventListener("change", () => {
+      syncRecommendationMode();
+    });
+}
+
+function syncRecommendationMode() {
+  const mode = document.querySelector("#recommendation-mode").value;
+  const semanticInput = document.querySelector("#recommendation-semantic-weight");
+  const citationInput = document.querySelector("#recommendation-citation-weight");
+  const note = document.querySelector("#recommendation-weight-note");
+
+  if (mode === "semantic") {
+    semanticInput.value = "1";
+    citationInput.value = "0";
+    semanticInput.disabled = true;
+    citationInput.disabled = true;
+    note.textContent = "Semantic mode ignores citation score.";
+    return;
   }
-  return new Intl.DateTimeFormat("en-GB", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
+  if (mode === "citation") {
+    semanticInput.value = "0";
+    citationInput.value = "1";
+    semanticInput.disabled = true;
+    citationInput.disabled = true;
+    note.textContent = "Citation mode ignores semantic similarity.";
+    return;
+  }
+  semanticInput.disabled = false;
+  citationInput.disabled = false;
+  if (!semanticInput.value) {
+    semanticInput.value = "0.7";
+  }
+  if (!citationInput.value) {
+    citationInput.value = "0.3";
+  }
+  note.textContent = "Hybrid mode uses both signals. Weights are normalized server-side.";
 }

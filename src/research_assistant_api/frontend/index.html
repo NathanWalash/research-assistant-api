@@ -21,22 +21,30 @@
     <div class="page-shell">
       <header class="workspace-nav">
         <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">Research Assistant</p>
-          <p class="brand-subtitle">Interactive frontend served by FastAPI</p>
+          <p class="brand-title">
+            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
+          </p>
+          <p class="brand-subtitle">Simple research workspace</p>
         </a>
         <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="home" href="/app">Home</a>
           <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
           <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
           <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
         </nav>
         <div class="nav-meta">
-          <span class="session-badge" data-user-summary>Guest mode</span>
-          <a class="button secondary compact" data-auth-link href="/app/login">
+          <a class="button secondary compact" data-signin-link href="/app/login">
             Sign in
           </a>
-          <button class="button ghost compact hidden" data-logout-button type="button">
-            Log out
+          <a class="button primary compact" data-register-link href="/app/register">
+            Create account
+          </a>
+          <a class="button secondary compact hidden" data-account-link href="/app/account">
+            My account
+          </a>
+          <button class="button danger compact hidden" data-logout-button type="button">
+            Sign out
           </button>
         </div>
       </header>
@@ -44,106 +52,71 @@
       <main class="workspace-stack">
         <section class="hero-card hero-grid">
           <div class="hero-copy">
-            <p class="eyebrow">Research Assistant API</p>
-            <h1>Explore, compare, organise, and recommend research papers.</h1>
+            <p class="eyebrow">Research Assistant</p>
+            <h1>Find papers, save what matters, and move faster.</h1>
             <p class="hero-text">
-              This frontend sits on top of the same FastAPI service you deploy on Railway.
-              It exposes discovery, analytics, citation traversal, project workflows, and
-              configurable recommendations through a clean demo-ready interface.
+              This workspace gives you a direct way into the application: discover papers,
+              save the useful ones into projects, and review simple analytics without
+              needing to think about the API underneath.
             </p>
             <div class="hero-actions">
               <a class="button primary" href="/app/discover">Start discovering papers</a>
               <a class="button secondary" href="/app/register">Create account</a>
-              <a class="button ghost" href="/docs" target="_blank" rel="noreferrer">
-                Open API docs
-              </a>
             </div>
-            <ul class="hero-points">
-              <li>Search the Leeds corpus and inspect paper metadata.</li>
-              <li>Jump from semantic similarity to citation neighbourhoods and paths.</li>
-              <li>Build project reading lists and compare recommendation modes.</li>
-            </ul>
           </div>
 
-          <aside class="surface-card emphasis-card">
-            <p class="section-eyebrow">Live dataset snapshot</p>
+          <aside class="surface-card emphasis-card landing-overview">
+            <p class="section-eyebrow">At a glance</p>
+            <h2>Live dataset snapshot.</h2>
             <div class="metric-grid" id="landing-metrics">
               <div class="metric-card">
                 <dt>Papers</dt>
                 <dd>Loading</dd>
               </div>
               <div class="metric-card">
-                <dt>Top topic</dt>
-                <dd>Loading</dd>
-              </div>
-              <div class="metric-card">
                 <dt>Latest year</dt>
                 <dd>Loading</dd>
               </div>
-              <div class="metric-card">
-                <dt>API</dt>
-                <dd>Checking</dd>
-              </div>
             </div>
             <p id="landing-status" class="helper-text">
-              Fetching corpus metrics from the live API.
+              Loading live summary data from the application.
             </p>
+            <div class="landing-picks">
+              <p class="landing-picks-label">Top papers right now</p>
+              <div id="landing-featured-papers" class="mini-paper-list"></div>
+            </div>
           </aside>
         </section>
 
         <section class="quick-grid">
           <article class="surface-card action-card">
             <p class="section-eyebrow">Discovery</p>
-            <h2>Find a paper and inspect its full context.</h2>
+            <h2>Inspect papers fast.</h2>
             <p class="prose-block">
-              Use search, paper detail, similar papers, citation neighbourhoods, directed
-              citation paths, and private annotations in one workspace.
+              Search papers, inspect context, and trace related work quickly.
             </p>
-            <a class="button secondary" href="/app/discover">Open discovery page</a>
+            <a class="button secondary" href="/app/discover">Open discovery</a>
           </article>
 
           <article class="surface-card action-card">
             <p class="section-eyebrow">Projects</p>
-            <h2>Manage a dissertation workflow.</h2>
+            <h2>Organise reading work.</h2>
             <p class="prose-block">
-              Create projects, maintain a reading list, score recommendations by semantic,
-              citation, or hybrid ranking, and keep notes per item.
+              Create projects, rank saved papers, and grow reading lists.
             </p>
-            <a class="button secondary" href="/app/projects">Open project workspace</a>
+            <a class="button secondary" href="/app/projects">Open projects</a>
           </article>
 
           <article class="surface-card action-card">
             <p class="section-eyebrow">Analytics</p>
-            <h2>Show the corpus story quickly.</h2>
+            <h2>Track corpus trends.</h2>
             <p class="prose-block">
-              Surface top papers, topic distribution, yearly trends, and co-authorship
-              patterns for a live coursework demo.
+              View top papers, topic spread, and yearly collaboration trends.
             </p>
-            <a class="button secondary" href="/app/analytics">Open analytics page</a>
+            <a class="button secondary" href="/app/analytics">Open analytics</a>
           </article>
         </section>
 
-        <section class="content-grid">
-          <article class="surface-card">
-            <div class="section-header">
-              <div>
-                <p class="section-eyebrow">Featured papers</p>
-                <h2>High-citation examples from the local corpus.</h2>
-              </div>
-            </div>
-            <div id="featured-papers" class="result-list"></div>
-          </article>
-
-          <article class="surface-card">
-            <div class="section-header">
-              <div>
-                <p class="section-eyebrow">Topic coverage</p>
-                <h2>Topics ready to demo.</h2>
-              </div>
-            </div>
-            <div id="featured-topics" class="result-list"></div>
-          </article>
-        </section>
       </main>
     </div>
   </body>

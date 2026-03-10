@@ -17,20 +17,28 @@
     <div class="page-shell">
       <header class="workspace-nav">
         <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">Research Assistant</p>
+          <p class="brand-title">
+            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
+          </p>
           <p class="brand-subtitle">Analytics workspace</p>
         </a>
         <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="home" href="/app">Home</a>
           <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
           <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
           <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
         </nav>
         <div class="nav-meta">
-          <span class="session-badge" data-user-summary>Guest mode</span>
-          <a class="button secondary compact" data-auth-link href="/app/login">Sign in</a>
-          <button class="button ghost compact hidden" data-logout-button type="button">
-            Log out
+          <a class="button secondary compact" data-signin-link href="/app/login">Sign in</a>
+          <a class="button primary compact" data-register-link href="/app/register">
+            Create account
+          </a>
+          <a class="button secondary compact hidden" data-account-link href="/app/account">
+            My account
+          </a>
+          <button class="button danger compact hidden" data-logout-button type="button">
+            Sign out
           </button>
         </div>
       </header>
@@ -41,11 +49,30 @@
         <section class="section-header">
           <div>
             <p class="section-eyebrow">Analytics</p>
-            <h1 class="page-title">Show influence, trends, and collaboration quickly.</h1>
+            <h1 class="page-title">Review the main patterns in the corpus.</h1>
           </div>
           <button id="refresh-all" class="button primary compact" type="button">
-            Refresh all
+            Refresh
           </button>
+        </section>
+
+        <section class="summary-grid">
+          <article class="metric-card">
+            <dt>Total papers</dt>
+            <dd id="summary-total-papers">Loading</dd>
+          </article>
+          <article class="metric-card">
+            <dt>Total citations</dt>
+            <dd id="summary-total-citations">Loading</dd>
+          </article>
+          <article class="metric-card">
+            <dt>Latest year</dt>
+            <dd id="summary-latest-year">Loading</dd>
+          </article>
+          <article class="metric-card">
+            <dt>Top topic</dt>
+            <dd id="summary-top-topic">Loading</dd>
+          </article>
         </section>
 
         <section class="analytics-grid">
@@ -53,21 +80,21 @@
             <div class="card-header">
               <div>
                 <p class="section-eyebrow">Top papers</p>
-                <h2>Influence ranking</h2>
+                <h2>Most cited papers</h2>
               </div>
             </div>
             <form id="top-papers-form" class="stack-form compact-form">
               <div class="inline-grid">
                 <label>
                   <span>Topic</span>
-                  <input id="top-papers-topic" type="text" />
+                  <select id="top-papers-topic"></select>
                 </label>
                 <label>
                   <span>Year</span>
-                  <input id="top-papers-year" type="number" min="1900" max="2100" />
+                  <select id="top-papers-year"></select>
                 </label>
               </div>
-              <button class="button secondary compact" type="submit">Run</button>
+              <button class="button secondary compact" type="submit">Update</button>
             </form>
             <div id="top-papers-results" class="result-list compact-list"></div>
           </article>
@@ -76,15 +103,15 @@
             <div class="card-header">
               <div>
                 <p class="section-eyebrow">Topics</p>
-                <h2>Corpus coverage</h2>
+                <h2>Topic coverage</h2>
               </div>
             </div>
             <form id="topics-form" class="stack-form compact-form">
               <label>
                 <span>Year</span>
-                <input id="topics-year" type="number" min="1900" max="2100" />
+                <select id="topics-year"></select>
               </label>
-              <button class="button secondary compact" type="submit">Run</button>
+              <button class="button secondary compact" type="submit">Update</button>
             </form>
             <div id="topics-results" class="result-list compact-list"></div>
           </article>
@@ -93,21 +120,21 @@
             <div class="card-header">
               <div>
                 <p class="section-eyebrow">Trends</p>
-                <h2>Publication output by year</h2>
+                <h2>Yearly output</h2>
               </div>
             </div>
             <form id="trends-form" class="stack-form compact-form">
               <div class="inline-grid">
                 <label>
                   <span>Start year</span>
-                  <input id="trends-start-year" type="number" min="1900" max="2100" />
+                  <select id="trends-start-year"></select>
                 </label>
                 <label>
                   <span>End year</span>
-                  <input id="trends-end-year" type="number" min="1900" max="2100" />
+                  <select id="trends-end-year"></select>
                 </label>
               </div>
-              <button class="button secondary compact" type="submit">Run</button>
+              <button class="button secondary compact" type="submit">Update</button>
             </form>
             <div id="trends-results" class="result-list compact-list"></div>
           </article>
@@ -116,15 +143,20 @@
             <div class="card-header">
               <div>
                 <p class="section-eyebrow">Collaborations</p>
-                <h2>Co-authorship graph</h2>
+                <h2>Author collaborations</h2>
               </div>
             </div>
             <form id="collaborations-form" class="stack-form compact-form">
               <label>
                 <span>Minimum shared papers</span>
-                <input id="collaborations-min-shared" type="number" min="1" value="2" />
+                <select id="collaborations-min-shared">
+                  <option value="1">1</option>
+                  <option value="2" selected>2</option>
+                  <option value="3">3</option>
+                  <option value="5">5</option>
+                </select>
               </label>
-              <button class="button secondary compact" type="submit">Run</button>
+              <button class="button secondary compact" type="submit">Update</button>
             </form>
             <div id="collaborations-results" class="result-list compact-list"></div>
           </article>

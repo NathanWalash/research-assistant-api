@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
         "login": "login.html",
         "register": "register.html",
         "discover": "discover.html",
+        "endpoints": "endpoints.html",
         "projects": "projects.html",
         "analytics": "analytics.html",
         "account": "account.html",

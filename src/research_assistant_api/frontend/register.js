@@ -2,7 +2,9 @@ import {
   apiRequest,
   bootstrapPage,
   saveSession,
+  setButtonPending,
   setStatus,
+  toErrorMessage,
 } from "/app/static/shared.js";
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -13,6 +15,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    const submitButton = form.querySelector('button[type="submit"]');
 
     const payload = {
       email: document.querySelector("#register-email").value.trim(),
@@ -20,17 +23,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     };
 
     try {
+      setButtonPending(submitButton, true, "Creating...");
       const tokenResponse = await apiRequest("/auth/register", {
         method: "POST",
         body: payload,
       });
       saveSession(tokenResponse);
-      const user = await apiRequest("/auth/me", { auth: true });
-      saveSession({ ...tokenResponse, user });
       setStatus(statusElement, "Account created. Redirecting to projects.", "success");
       window.location.assign("/app/projects");
     } catch (error) {
-      setStatus(statusElement, error.message, "error");
+      setStatus(statusElement, toErrorMessage(error), "error");
+    } finally {
+      setButtonPending(submitButton, false);
     }
   });
 });

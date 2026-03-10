@@ -17,20 +17,28 @@
     <div class="page-shell">
       <header class="workspace-nav">
         <a class="brand-block brand-link" href="/app">
-          <p class="brand-title">Research Assistant</p>
+          <p class="brand-title">
+            <span class="brand-word-main">Research</span><span class="brand-word-accent">Assistant</span>
+          </p>
           <p class="brand-subtitle">Project workspace</p>
         </a>
         <nav class="nav-actions" aria-label="Primary">
+          <a class="nav-link" data-page-link="home" href="/app">Home</a>
           <a class="nav-link" data-page-link="discover" href="/app/discover">Discover</a>
+          <a class="nav-link" data-page-link="endpoints" href="/app/endpoints">Endpoints</a>
           <a class="nav-link" data-page-link="projects" href="/app/projects">Projects</a>
           <a class="nav-link" data-page-link="analytics" href="/app/analytics">Analytics</a>
-          <a class="nav-link" data-page-link="account" href="/app/account">Account</a>
         </nav>
         <div class="nav-meta">
-          <span class="session-badge" data-user-summary>Guest mode</span>
-          <a class="button secondary compact" data-auth-link href="/app/login">Sign in</a>
-          <button class="button ghost compact hidden" data-logout-button type="button">
-            Log out
+          <a class="button secondary compact" data-signin-link href="/app/login">Sign in</a>
+          <a class="button primary compact" data-register-link href="/app/register">
+            Create account
+          </a>
+          <a class="button secondary compact hidden" data-account-link href="/app/account">
+            My account
+          </a>
+          <button class="button danger compact hidden" data-logout-button type="button">
+            Sign out
           </button>
         </div>
       </header>
@@ -41,7 +49,7 @@
         <section class="section-header">
           <div>
             <p class="section-eyebrow">Projects</p>
-            <h1 class="page-title">Create a project, build a reading list, and compare ranking modes.</h1>
+            <h1 class="page-title">Choose a project and manage the saved papers.</h1>
           </div>
         </section>
 
@@ -51,7 +59,15 @@
 
         <section class="workspace-grid hidden" data-authenticated-only="true">
           <article class="surface-card">
-            <h2>Create a project</h2>
+            <div class="card-header">
+              <div>
+                <p class="section-eyebrow">Projects</p>
+                <h2>Create or select a project</h2>
+              </div>
+            </div>
+            <p class="helper-text">
+              Start a new project here, then switch between saved projects below.
+            </p>
             <form id="project-create-form" class="stack-form">
               <label>
                 <span>Title</span>
@@ -66,8 +82,7 @@
 
             <div class="card-header section-gap">
               <div>
-                <p class="section-eyebrow">Your projects</p>
-                <h3>Choose a project to work on.</h3>
+                <h3>Your projects</h3>
               </div>
             </div>
             <div id="project-list" class="result-list"></div>
@@ -76,14 +91,13 @@
           <article class="surface-card">
             <div class="card-header">
               <div>
-                <p class="section-eyebrow">Selected project</p>
-                <h2 id="selected-project-title">No project selected</h2>
+                <p class="section-eyebrow">Current project</p>
+                <h2 id="selected-project-title-heading">No project selected</h2>
               </div>
               <span id="selected-project-count" class="pill">0 items</span>
             </div>
-
+            <input id="selected-project-id" type="hidden" />
             <form id="project-update-form" class="stack-form">
-              <input id="selected-project-id" type="hidden" />
               <label>
                 <span>Title</span>
                 <input id="selected-project-title-input" type="text" />
@@ -92,13 +106,17 @@
                 <span>Description</span>
                 <textarea id="selected-project-description-input" rows="4"></textarea>
               </label>
-              <div class="button-row">
-                <button class="button secondary" type="submit">Update project</button>
-                <button class="button ghost" type="button" id="delete-project-button">
-                  Delete project
-                </button>
-              </div>
+              <button class="button secondary compact" type="submit">Save project details</button>
             </form>
+            <p id="selected-project-meta" class="helper-text">No project selected.</p>
+            <div class="button-row">
+              <a class="button secondary compact" href="/app/discover" id="project-discover-link">
+                Add papers from Discover
+              </a>
+              <button class="button ghost" type="button" id="delete-project-button">
+                Delete project
+              </button>
+            </div>
           </article>
         </section>
 
@@ -107,35 +125,16 @@
             <div class="card-header">
               <div>
                 <p class="section-eyebrow">Reading list</p>
-                <h2>Add papers into the project.</h2>
+                <h2>Saved papers</h2>
               </div>
             </div>
-            <form id="reading-list-create-form" class="stack-form">
-              <label>
-                <span>Paper ID</span>
-                <input id="reading-paper-id" type="text" placeholder="https://openalex.org/W1234567890" />
-              </label>
-              <div class="inline-grid">
-                <label>
-                  <span>Priority</span>
-                  <select id="reading-priority">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </label>
-              </div>
-              <label>
-                <span>Notes</span>
-                <textarea id="reading-notes" rows="3" placeholder="Context for this paper in the project."></textarea>
-              </label>
-              <button class="button primary" type="submit">Add reading-list item</button>
-            </form>
+            <p class="helper-text">
+              Add papers from the Discover page, then use this page to review and tidy them.
+            </p>
 
             <div class="card-header section-gap">
               <div>
-                <h3>Reading-list items</h3>
-                <p class="helper-text">Select one to edit notes or priority.</p>
+                <h3>Items in this project</h3>
               </div>
             </div>
             <div id="reading-list-results" class="result-list"></div>
@@ -144,9 +143,18 @@
           <article class="surface-card">
             <div class="card-header">
               <div>
-                <p class="section-eyebrow">Selected reading-list item</p>
+                <p class="section-eyebrow">Selected paper</p>
                 <h2 id="selected-reading-item-title">No reading-list item selected</h2>
               </div>
+            </div>
+            <div class="button-row">
+              <a
+                class="button secondary compact hidden"
+                href="/app/discover"
+                id="selected-reading-item-link"
+              >
+                Open paper
+              </a>
             </div>
             <form id="reading-list-update-form" class="stack-form">
               <input id="selected-reading-item-id" type="hidden" />
@@ -165,7 +173,7 @@
                 <textarea id="selected-reading-notes" rows="5"></textarea>
               </label>
               <div class="button-row">
-                <button class="button secondary" type="submit">Update item</button>
+                <button class="button secondary" type="submit">Save changes</button>
                 <button class="button ghost" type="button" id="delete-reading-item-button">
                   Delete item
                 </button>
@@ -176,30 +184,50 @@
 
         <section class="surface-card hidden" data-authenticated-only="true">
           <div class="card-header">
-            <div>
-              <p class="section-eyebrow">Recommendations</p>
-              <h2>Compare semantic, citation, and hybrid ranking.</h2>
+              <div>
+                <p class="section-eyebrow">Recommendations</p>
+                <h2>Suggested papers</h2>
+              </div>
             </div>
-          </div>
+          <p class="helper-text">
+            Use a balanced, semantic, or citation-led view depending on what you want to surface.
+          </p>
           <form id="recommendation-form" class="stack-form">
-            <div class="inline-grid">
-              <label>
-                <span>Mode</span>
-                <select id="recommendation-mode">
-                  <option value="hybrid">Hybrid</option>
-                  <option value="semantic">Semantic only</option>
-                  <option value="citation">Citation only</option>
-                </select>
-              </label>
+            <label>
+              <span>Mode</span>
+              <select id="recommendation-mode">
+                <option value="hybrid">Balanced</option>
+                <option value="semantic">Semantic only</option>
+                <option value="citation">Citation only</option>
+              </select>
+            </label>
+            <div id="recommendation-weights" class="inline-grid">
               <label>
                 <span>Semantic weight</span>
-                <input id="semantic-weight" type="number" min="0" max="1" step="0.1" value="0.7" />
+                <input
+                  id="recommendation-semantic-weight"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value="0.7"
+                />
               </label>
               <label>
                 <span>Citation weight</span>
-                <input id="citation-weight" type="number" min="0" max="1" step="0.1" value="0.3" />
+                <input
+                  id="recommendation-citation-weight"
+                  type="number"
+                  min="0"
+                  max="1"
+                  step="0.1"
+                  value="0.3"
+                />
               </label>
             </div>
+            <p id="recommendation-weight-note" class="helper-text">
+              Hybrid mode uses both signals. Weights are normalized server-side.
+            </p>
             <button class="button primary" type="submit">Load recommendations</button>
           </form>
           <div id="recommendation-results" class="result-list"></div>
