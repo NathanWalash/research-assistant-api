@@ -1,13 +1,11 @@
 from research_assistant_api.models import Paper
 from research_assistant_api.repositories.analytics_repository import (
     AnalyticsRepository,
-    CollaborationPairRecord,
     PublicationTrendRecord,
     TopicAnalyticsRecord,
 )
 from research_assistant_api.schemas.analytics import (
     AnalyticsPaperItem,
-    CollaborationPairItem,
     PublicationTrendItem,
     TopicAnalyticsItem,
 )
@@ -50,18 +48,6 @@ def _build_publication_trend_item(
         paper_count=record.paper_count,
         total_citation_count=record.total_citation_count,
         average_citation_count=round(record.average_citation_count, 2),
-    )
-
-
-def _build_collaboration_pair_item(
-    record: CollaborationPairRecord,
-) -> CollaborationPairItem:
-    return CollaborationPairItem(
-        author_a_id=record.author_a_id,
-        author_a_name=record.author_a_name,
-        author_b_id=record.author_b_id,
-        author_b_name=record.author_b_name,
-        shared_paper_count=record.shared_paper_count,
     )
 
 
@@ -110,17 +96,3 @@ class AnalyticsService:
             end_year=end_year,
         )
         return [_build_publication_trend_item(record) for record in records]
-
-    def list_collaboration_pairs(
-        self,
-        *,
-        min_shared_papers: int,
-        limit: int,
-        offset: int,
-    ) -> list[CollaborationPairItem]:
-        records = self.repository.list_collaboration_pairs(
-            min_shared_papers=min_shared_papers,
-            limit=limit,
-            offset=offset,
-        )
-        return [_build_collaboration_pair_item(record) for record in records]

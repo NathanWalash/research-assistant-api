@@ -7,7 +7,6 @@ from research_assistant_api.db.session import get_db
 from research_assistant_api.repositories.analytics_repository import AnalyticsRepository
 from research_assistant_api.schemas.analytics import (
     AnalyticsPaperItem,
-    CollaborationPairItem,
     PublicationTrendItem,
     TopicAnalyticsItem,
 )
@@ -79,22 +78,3 @@ def list_publication_trends(
         end_year=end_year,
     )
 
-
-@router.get(
-    "/collaborations",
-    response_model=list[CollaborationPairItem],
-    summary="List collaborations",
-    description="List co-authorship pairs ranked by shared paper count.",
-)
-def list_collaboration_pairs(
-    session: Annotated[Session, Depends(get_db)],
-    min_shared_papers: Annotated[int, Query(ge=1)] = 1,
-    limit: Annotated[int, Query(ge=1, le=100)] = 50,
-    offset: Annotated[int, Query(ge=0)] = 0,
-) -> list[CollaborationPairItem]:
-    service = _build_service(session)
-    return service.list_collaboration_pairs(
-        min_shared_papers=min_shared_papers,
-        limit=limit,
-        offset=offset,
-    )

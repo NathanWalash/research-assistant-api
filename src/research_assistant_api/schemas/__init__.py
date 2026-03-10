@@ -2,7 +2,6 @@
 
 from research_assistant_api.schemas.analytics import (
     AnalyticsPaperItem,
-    CollaborationPairItem,
     PublicationTrendItem,
     TopicAnalyticsItem,
 )
@@ -55,7 +54,6 @@ __all__ = [
     "AuthenticatedUser",
     "CitationNeighborhoodResponse",
     "CitationPathResponse",
-    "CollaborationPairItem",
     "InstitutionSummary",
     "PaperAuthorSummary",
     "PaperDetail",
