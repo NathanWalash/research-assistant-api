@@ -1761,7 +1761,7 @@ function AccountPage() {
           <div className="surface-subsection">
             <h3>Quick actions</h3>
           </div>
-          <div className="link-list">
+          <div className="link-list account-quick-links">
             <Link to="/discover">Open discovery</Link>
             <Link to="/projects">Open projects</Link>
             <Link to="/analytics">Open analytics</Link>
@@ -1769,7 +1769,7 @@ function AccountPage() {
         </article>
       </section>
 
-      <section className="surface-card">
+      <section className="surface-card account-summary-card">
         <div className="card-header">
           <div>
             <p className="section-eyebrow">Workspace summary</p>
@@ -1780,14 +1780,14 @@ function AccountPage() {
           <div className="callout visible">Sign in to view your project summary here.</div>
         ) : (
           <>
-            <div className="summary-grid">
+            <div className="summary-grid account-summary-grid">
               <MetricCard label="Projects" value={formatNumber(projects.length)} />
               <MetricCard
                 label="Latest project"
                 value={latestProjectDate ? formatDate(latestProjectDate.toISOString()) : "Not available"}
               />
             </div>
-            <div className="result-list">
+            <div className="result-list compact-list account-summary-project-list">
               {projects.length ? (
                 projects.map((project) => (
                   <ResultItem
