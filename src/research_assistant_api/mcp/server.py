@@ -1,6 +1,8 @@
 from mcp.server.fastmcp import FastMCP
 
 from research_assistant_api.core.config import Settings, get_settings
+from research_assistant_api.db.session import get_session_factory
+from research_assistant_api.mcp.tools_public import register_public_tools
 
 
 def create_mcp_server(settings: Settings | None = None) -> FastMCP:
@@ -22,5 +24,10 @@ def create_mcp_server(settings: Settings | None = None) -> FastMCP:
     )
     def health_check() -> dict[str, str]:
         return {"service": "research-assistant-api", "status": "ok"}
+
+    register_public_tools(
+        mcp,
+        session_factory=get_session_factory(resolved_settings.database_url),
+    )
 
     return mcp
