@@ -383,14 +383,27 @@ export function createResultItem({
 export function appendActions(container, actions) {
   const row = document.createElement("div");
   row.className = "result-actions";
-  actions.forEach(({ label, onClick, tone = "secondary", type = "button" }) => {
+  actions.forEach(
+    ({
+      label,
+      onClick,
+      tone = "secondary",
+      type = "button",
+      disabled = false,
+      title = "",
+    }) => {
     const button = document.createElement("button");
     button.type = type;
     button.className = `button ${tone} compact`;
     button.textContent = label;
+    button.disabled = Boolean(disabled);
+    if (title) {
+      button.title = title;
+    }
     button.addEventListener("click", onClick);
     row.append(button);
-  });
+    },
+  );
   container.append(row);
 }
 

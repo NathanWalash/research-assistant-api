@@ -54,145 +54,50 @@
           <a class="button ghost compact" href="/app/endpoints">View endpoint map</a>
         </section>
 
-        <section class="workspace-grid">
-          <article class="surface-card discover-search-card">
-            <div class="card-header">
-              <div>
-                <p class="section-eyebrow">Search</p>
-                <h2>Find papers</h2>
-              </div>
-            </div>
-            <p class="helper-text">
-              Enter a topic or keywords, then filter by year and citations to search the corpus.
-            </p>
-            <form id="search-form" class="stack-form">
-              <label>
-                <span>Topic or keywords</span>
-                <input
-                  id="search-query"
-                  type="text"
-                  placeholder="e.g. knowledge graphs, retrieval, machine learning"
-                />
-              </label>
-              <div class="inline-grid">
-                <label>
-                  <span>Topic</span>
-                  <select id="search-topic"></select>
-                </label>
-                <label>
-                  <span>Year</span>
-                  <select id="search-year"></select>
-                </label>
-                <label>
-                  <span>Minimum citations</span>
-                  <input id="search-citation-count" type="number" min="0" step="1" value="0" />
-                </label>
-              </div>
-              <div class="button-row discover-search-actions">
-                <button class="button primary" type="submit">Run search</button>
-                <button class="button ghost" id="clear-search" type="button">Clear</button>
-              </div>
-            </form>
-            <p id="search-summary" class="helper-text">Loading search state.</p>
-            <div id="search-results" class="result-list discover-scroll-window"></div>
-            <div class="toolbar">
-              <button class="button ghost compact" id="search-prev" type="button">
-                Previous
-              </button>
-              <p id="search-page" class="helper-text">Page 1</p>
-              <button class="button ghost compact" id="search-next" type="button">
-                Next
-              </button>
-            </div>
-          </article>
-
-          <article class="surface-card discover-paper-card">
-            <div class="card-header">
-              <div>
-                <p class="section-eyebrow">Selected paper</p>
-                <h2 id="paper-title">Choose a paper from the search results</h2>
-              </div>
-              <span id="paper-topic-pill" class="pill hidden"></span>
-            </div>
-            <div id="paper-meta" class="meta-grid discover-meta-grid"></div>
-
-            <details id="paper-abstract-panel" class="paper-abstract-panel hidden">
-              <summary>Abstract</summary>
-              <div id="paper-abstract" class="prose-block"></div>
-            </details>
-            <p id="paper-abstract-empty" class="helper-text">Select a paper to view its abstract.</p>
-
-            <section class="surface-subsection">
-              <h3>Authors</h3>
-              <div id="paper-authors" class="result-list compact-list discover-scroll-window authors-window"></div>
-            </section>
-          </article>
-        </section>
-
-        <section class="surface-card">
+        <section class="surface-card discover-search-card">
           <div class="card-header">
             <div>
-              <p class="section-eyebrow">Save and annotate</p>
-              <h2>Capture selected papers into your workflow</h2>
+              <p class="section-eyebrow">Search</p>
+              <h2>Find papers</h2>
             </div>
           </div>
-          <div class="split-columns">
-            <section>
-              <h3>Save to project</h3>
-              <div class="callout" data-authenticated-only="false">
-                Sign in to save papers to a project.
-              </div>
-              <form
-                id="save-to-project-form"
-                class="stack-form hidden"
-                data-authenticated-only="true"
-              >
-                <label>
-                  <span>Project</span>
-                  <select id="save-project-id"></select>
-                </label>
-                <label>
-                  <span>Priority</span>
-                  <select id="save-priority">
-                    <option value="low">Low</option>
-                    <option value="medium" selected>Medium</option>
-                    <option value="high">High</option>
-                  </select>
-                </label>
-                <button class="button primary" type="submit">Add to project</button>
-              </form>
-            </section>
-
-            <section>
-              <h3>Private notes</h3>
-              <div class="callout" data-authenticated-only="false">
-                Sign in to add notes to this paper.
-              </div>
-              <form
-                id="annotation-form"
-                class="stack-form hidden"
-                data-authenticated-only="true"
-              >
-                <input id="annotation-id" type="hidden" />
-                <label>
-                  <span>Note</span>
-                  <textarea
-                    id="annotation-text"
-                    rows="4"
-                    placeholder="Record why this paper matters or what to follow up."
-                  ></textarea>
-                </label>
-                <div class="button-row">
-                  <button class="button primary" type="submit" id="annotation-submit">
-                    Save note
-                  </button>
-                  <button class="button ghost hidden" type="button" id="annotation-cancel">
-                    Cancel edit
-                  </button>
-                </div>
-              </form>
-              <div id="annotation-results" class="result-list compact-list discover-scroll-window notes-window"></div>
-            </section>
+          <p class="helper-text">
+            Enter a topic or keywords, then filter by year and citations to search the corpus.
+          </p>
+          <form id="search-form" class="stack-form">
+            <label>
+              <span>Topic or keywords</span>
+              <input
+                id="search-query"
+                type="text"
+                placeholder="e.g. knowledge graphs, retrieval, machine learning"
+              />
+            </label>
+            <div class="inline-grid">
+              <label>
+                <span>Topic</span>
+                <select id="search-topic"></select>
+              </label>
+              <label>
+                <span>Year</span>
+                <select id="search-year"></select>
+              </label>
+              <label>
+                <span>Minimum citations</span>
+                <input id="search-citation-count" type="number" min="0" step="1" value="0" />
+              </label>
+            </div>
+            <div class="button-row discover-search-actions">
+              <button class="button primary" type="submit">Run search</button>
+              <button class="button ghost" id="clear-search" type="button">Clear</button>
+            </div>
+          </form>
+          <p id="search-summary" class="helper-text">Loading search state.</p>
+          <div id="search-results" class="result-list discover-scroll-window"></div>
+          <div class="toolbar">
+            <button class="button ghost compact" id="search-prev" type="button">Previous</button>
+            <p id="search-page" class="helper-text">Page 1</p>
+            <button class="button ghost compact" id="search-next" type="button">Next</button>
           </div>
         </section>
 
@@ -201,11 +106,14 @@
             <div>
               <p class="section-eyebrow">Similarity and citation graph</p>
               <h2>Embedding neighbours and citation paths</h2>
+              <p id="selected-paper-active" class="helper-text discover-selected-paper">
+                Select a paper from the search results to populate this section.
+              </p>
             </div>
+            <button id="open-selected-paper" class="button ghost compact hidden" type="button">
+              View selected paper
+            </button>
           </div>
-          <p class="helper-text">
-            Use these tools to inspect vector-based similarity and citation-graph structure for the selected paper.
-          </p>
           <div class="split-columns">
             <section>
               <h3>Similar papers</h3>
@@ -247,6 +155,108 @@
           </section>
         </section>
       </main>
+    </div>
+
+    <div id="paper-detail-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="paper-title">
+      <article class="surface-card modal-card">
+        <div class="card-header modal-header">
+          <div>
+            <p class="section-eyebrow">Paper detail</p>
+            <h2 id="paper-title">Choose a paper from the search results</h2>
+          </div>
+          <button id="paper-modal-close" class="button ghost compact modal-close" type="button">
+            Close
+          </button>
+        </div>
+        <div id="paper-meta" class="meta-grid discover-meta-grid"></div>
+        <details id="paper-abstract-panel" class="paper-abstract-panel hidden">
+          <summary>Abstract</summary>
+          <div id="paper-abstract" class="prose-block"></div>
+        </details>
+        <p id="paper-abstract-empty" class="helper-text">Select a paper to view its abstract.</p>
+        <section class="surface-subsection">
+          <article class="modal-subcard">
+            <h3>Authors</h3>
+            <div
+              id="paper-authors"
+              class="result-list compact-list discover-scroll-window authors-window"
+            ></div>
+          </article>
+        </section>
+      </article>
+    </div>
+
+    <div id="workspace-action-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="workspace-modal-title">
+      <article class="surface-card modal-card workspace-modal-card">
+        <div class="card-header modal-header">
+          <div>
+            <p class="section-eyebrow">Workspace actions</p>
+            <h2 id="workspace-modal-title">Save and annotate this paper</h2>
+            <p id="workspace-modal-paper" class="helper-text">No paper selected.</p>
+          </div>
+          <button id="workspace-modal-close" class="button ghost compact modal-close" type="button">
+            Close
+          </button>
+        </div>
+        <div class="split-columns">
+          <section>
+            <h3>Save to project</h3>
+            <div class="callout" data-authenticated-only="false">
+              Sign in to save papers to a project.
+            </div>
+            <form
+              id="save-to-project-form"
+              class="stack-form hidden"
+              data-authenticated-only="true"
+            >
+              <label>
+                <span>Project</span>
+                <select id="save-project-id"></select>
+              </label>
+              <label>
+                <span>Priority</span>
+                <select id="save-priority">
+                  <option value="low">Low</option>
+                  <option value="medium" selected>Medium</option>
+                  <option value="high">High</option>
+                </select>
+              </label>
+              <button class="button primary" type="submit">Add to project</button>
+            </form>
+          </section>
+
+          <section>
+            <h3>Private notes</h3>
+            <div class="callout" data-authenticated-only="false">
+              Sign in to add notes to this paper.
+            </div>
+            <form
+              id="annotation-form"
+              class="stack-form hidden"
+              data-authenticated-only="true"
+            >
+              <input id="annotation-id" type="hidden" />
+              <label>
+                <span>Note</span>
+                <textarea
+                  id="annotation-text"
+                  rows="4"
+                  placeholder="Record why this paper matters or what to follow up."
+                ></textarea>
+              </label>
+              <div class="button-row">
+                <button class="button primary" type="submit" id="annotation-submit">
+                  Save note
+                </button>
+                <button class="button ghost hidden" type="button" id="annotation-cancel">
+                  Cancel edit
+                </button>
+              </div>
+            </form>
+            <div id="annotation-results" class="result-list compact-list discover-scroll-window notes-window"></div>
+          </section>
+        </div>
+      </article>
     </div>
   </body>
 </html>

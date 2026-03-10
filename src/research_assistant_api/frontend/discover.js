@@ -37,6 +37,11 @@ document.addEventListener("DOMContentLoaded", async () => {
   const clearButton = document.querySelector("#clear-search");
   const previousButton = document.querySelector("#search-prev");
   const nextButton = document.querySelector("#search-next");
+  const selectedPaperViewButton = document.querySelector("#open-selected-paper");
+  const paperModal = document.querySelector("#paper-detail-modal");
+  const paperModalCloseButton = document.querySelector("#paper-modal-close");
+  const workspaceModal = document.querySelector("#workspace-action-modal");
+  const workspaceModalCloseButton = document.querySelector("#workspace-modal-close");
   const saveForm = document.querySelector("#save-to-project-form");
   const annotationForm = document.querySelector("#annotation-form");
   const annotationCancelButton = document.querySelector("#annotation-cancel");
@@ -46,6 +51,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   hydrateSearchStateFromUrl();
   applySearchStateToInputs();
   await loadSearchFilters();
+  initializeDiscoveryPanels();
 
   if (user) {
     await loadProjects();
@@ -54,7 +60,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   searchForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     state.search.offset = 0;
-    await runSearch({ autoSelectFirst: true });
+    await runSearch({ autoSelectFirst: false });
   });
 
   clearButton.addEventListener("click", async () => {
@@ -68,7 +74,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       hasMore: false,
     };
     state.searchResults = [];
-    await runSearch({ autoSelectFirst: true });
+    await runSearch({ autoSelectFirst: false });
   });
 
   previousButton?.addEventListener("click", async () => {
@@ -174,6 +180,37 @@ document.addEventListener("DOMContentLoaded", async () => {
     resetAnnotationEditor();
   });
 
+  selectedPaperViewButton?.addEventListener("click", async () => {
+    await openPaperDetailModal();
+  });
+
+  paperModalCloseButton?.addEventListener("click", () => {
+    closePaperDetailModal();
+  });
+
+  paperModal?.addEventListener("click", (event) => {
+    if (event.target === paperModal) {
+      closePaperDetailModal();
+    }
+  });
+
+  workspaceModalCloseButton?.addEventListener("click", () => {
+    closeWorkspaceActionModal();
+  });
+
+  workspaceModal?.addEventListener("click", (event) => {
+    if (event.target === workspaceModal) {
+      closeWorkspaceActionModal();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closePaperDetailModal();
+      closeWorkspaceActionModal();
+    }
+  });
+
   citationPathForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await loadCitationPath(statusElement);
@@ -183,7 +220,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   if (requestedPaper) {
     await loadPaperDetail(requestedPaper);
   }
-  await runSearch({ autoSelectFirst: !requestedPaper });
+  await runSearch({ autoSelectFirst: false });
 });
 
 async function loadProjects() {
@@ -289,7 +326,6 @@ async function runSearch({ autoSelectFirst = false } = {}) {
 
 async function loadPaperDetail(paperId) {
   const titleElement = document.querySelector("#paper-title");
-  const topicPill = document.querySelector("#paper-topic-pill");
   const metaContainer = document.querySelector("#paper-meta");
   const abstractPanel = document.querySelector("#paper-abstract-panel");
   const abstractContainer = document.querySelector("#paper-abstract");
@@ -299,12 +335,13 @@ async function loadPaperDetail(paperId) {
   try {
     const paper = await apiRequest(`/papers/${encodePathSegment(paperId)}`);
     state.selectedPaper = paper;
+    updateSelectedPaperSummary();
+    updateWorkspaceModalSummary();
     titleElement.textContent = paper.title;
-    topicPill.textContent = paper.topic?.name ?? "No topic";
-    topicPill.classList.toggle("hidden", !paper.topic?.name);
 
     metaContainer.replaceChildren(
       createMetaCard("Paper ID", paper.id),
+      createMetaCard("Topic", paper.topic?.name ?? "No topic"),
       createMetaCard("Published", formatDate(paper.publication_date)),
       createMetaCard("Citations", formatNumber(paper.citation_count)),
       createMetaCard("Year", String(paper.publication_year)),
@@ -357,11 +394,14 @@ async function loadPaperDetail(paperId) {
     await Promise.all([loadSimilarPapers(paper.id), loadCitations(paper.id)]);
   } catch (error) {
     state.selectedPaper = null;
+    updateSelectedPaperSummary();
+    updateWorkspaceModalSummary();
     titleElement.textContent = "Paper lookup failed";
     abstractPanel.classList.add("hidden");
     abstractContainer.textContent = "";
     abstractEmptyElement.textContent = toErrorMessage(error);
     abstractEmptyElement.classList.remove("hidden");
+    renderEmpty(authorsContainer, "Paper detail is unavailable.");
     syncUrlState();
   }
 }
@@ -381,10 +421,10 @@ async function loadSimilarPapers(paperId) {
         createResultItem({
           title: paper.title,
           href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
-          badges: [`Similarity ${paper.similarity_score.toFixed(3)}`],
           meta: [
             `${paper.publication_year}`,
             `${formatNumber(paper.citation_count)} citations`,
+            `Similarity ${paper.similarity_score.toFixed(3)}`,
           ],
         }),
       ),
@@ -562,6 +602,7 @@ function createMetaCard(label, value) {
 
 function renderSearchResults() {
   const resultsContainer = document.querySelector("#search-results");
+  const canOpenWorkspace = Boolean(getSessionUser());
   if (!state.searchResults.length) {
     renderEmpty(resultsContainer, "No papers matched the current filters.");
     return;
@@ -570,7 +611,7 @@ function renderSearchResults() {
     ...state.searchResults.map((paper) => {
       const item = createResultItem({
         title: paper.title,
-        href: `/app/discover?paper=${encodeURIComponent(paper.id)}`,
+        href: null,
         selected: state.selectedPaper?.id === paper.id,
         badges: [paper.topic?.name ?? "No topic"],
         meta: [
@@ -581,9 +622,27 @@ function renderSearchResults() {
       });
       appendActions(item, [
         {
-          label: "Open",
+          label: "Select",
           onClick: async () => {
             await loadPaperDetail(paper.id);
+          },
+        },
+        {
+          label: "View",
+          tone: "primary",
+          onClick: async () => {
+            await openPaperDetailModal(paper.id);
+          },
+        },
+        {
+          label: "Workspace",
+          tone: "secondary",
+          disabled: !canOpenWorkspace,
+          title: canOpenWorkspace
+            ? "Save this paper or add private notes."
+            : "Sign in to use workspace actions.",
+          onClick: async () => {
+            await openWorkspaceActionModal(paper.id);
           },
         },
       ]);
@@ -638,4 +697,116 @@ function syncUrlState() {
     offset: state.search.offset ? state.search.offset : null,
     paper: state.selectedPaper?.id ?? null,
   });
+}
+
+function initializeDiscoveryPanels() {
+  updateSelectedPaperSummary();
+  updateWorkspaceModalSummary();
+  renderEmpty(
+    document.querySelector("#similar-results"),
+    "Select a paper to load embedding-based similar papers.",
+  );
+  renderEmpty(
+    document.querySelector("#citation-results"),
+    "Select a paper to load citation neighbours.",
+  );
+  renderEmpty(
+    document.querySelector("#citation-path-results"),
+    "Select a source paper before finding a path.",
+  );
+  renderEmpty(
+    document.querySelector("#paper-authors"),
+    "Select and view a paper to inspect authorship metadata.",
+  );
+  const annotationMessage = getSessionUser()
+    ? "Select a paper to view annotations."
+    : "Sign in to manage annotations.";
+  renderEmpty(document.querySelector("#annotation-results"), annotationMessage);
+}
+
+function updateSelectedPaperSummary() {
+  const summaryElement = document.querySelector("#selected-paper-active");
+  const viewButton = document.querySelector("#open-selected-paper");
+  if (!summaryElement || !viewButton) {
+    return;
+  }
+
+  if (!state.selectedPaper) {
+    summaryElement.textContent = "Select a paper from the search results to populate this section.";
+    viewButton.classList.add("hidden");
+    return;
+  }
+
+  const year = state.selectedPaper.publication_year ?? "N/A";
+  summaryElement.textContent = `Selected: ${state.selectedPaper.title} (${year}).`;
+  viewButton.classList.remove("hidden");
+}
+
+async function openPaperDetailModal(paperId = null) {
+  if (paperId) {
+    await loadPaperDetail(paperId);
+  }
+  if (!state.selectedPaper) {
+    return;
+  }
+
+  const modal = document.querySelector("#paper-detail-modal");
+  if (!modal) {
+    return;
+  }
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closePaperDetailModal() {
+  const modal = document.querySelector("#paper-detail-modal");
+  if (!modal || modal.classList.contains("hidden")) {
+    return;
+  }
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+async function openWorkspaceActionModal(paperId = null) {
+  if (!getSessionUser()) {
+    return;
+  }
+  if (paperId) {
+    await loadPaperDetail(paperId);
+  }
+  if (!state.selectedPaper) {
+    return;
+  }
+
+  const modal = document.querySelector("#workspace-action-modal");
+  if (!modal) {
+    return;
+  }
+  updateWorkspaceModalSummary();
+  modal.classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeWorkspaceActionModal() {
+  const modal = document.querySelector("#workspace-action-modal");
+  if (!modal || modal.classList.contains("hidden")) {
+    return;
+  }
+  modal.classList.add("hidden");
+  document.body.classList.remove("modal-open");
+}
+
+function updateWorkspaceModalSummary() {
+  const summaryElement = document.querySelector("#workspace-modal-paper");
+  if (!summaryElement) {
+    return;
+  }
+
+  if (!state.selectedPaper) {
+    summaryElement.textContent = "No paper selected.";
+    return;
+  }
+
+  const year = state.selectedPaper.publication_year ?? "N/A";
+  summaryElement.textContent = `${state.selectedPaper.title} (${year})`;
 }
