@@ -134,6 +134,20 @@ class AuthorService:
     def __init__(self, repository: AuthorRepository):
         self.repository = repository
 
+    def list_authors(
+        self,
+        *,
+        query: str | None,
+        limit: int,
+        offset: int,
+    ) -> list[AuthorDetail]:
+        author_records = self.repository.list_authors(
+            query=query,
+            limit=limit,
+            offset=offset,
+        )
+        return [_build_author_detail(record) for record in author_records]
+
     def get_author(self, author_id: str) -> AuthorDetail:
         author_record = self.repository.get_by_id(author_id)
         if author_record is None:

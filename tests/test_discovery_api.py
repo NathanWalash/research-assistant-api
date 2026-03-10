@@ -114,6 +114,81 @@ def test_author_endpoints_return_author_profile_and_papers(client: TestClient) -
     ]
 
 
+def test_authors_endpoint_lists_authors_with_counts(client: TestClient) -> None:
+    response = client.get("/authors")
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": "https://openalex.org/A1",
+            "name": "Alice Smith",
+            "orcid": "https://orcid.org/0000-0000-0000-0001",
+            "institution": {
+                "id": "https://openalex.org/I1",
+                "name": "University of Leeds",
+                "country": "GB",
+            },
+            "paper_count": 2,
+        },
+        {
+            "id": "https://openalex.org/A2",
+            "name": "Bob Jones",
+            "orcid": None,
+            "institution": {
+                "id": "https://openalex.org/I1",
+                "name": "University of Leeds",
+                "country": "GB",
+            },
+            "paper_count": 1,
+        },
+        {
+            "id": "https://openalex.org/A3",
+            "name": "Cara Patel",
+            "orcid": "https://orcid.org/0000-0000-0000-0003",
+            "institution": None,
+            "paper_count": 1,
+        },
+    ]
+
+
+def test_authors_endpoint_supports_pagination(client: TestClient) -> None:
+    response = client.get("/authors", params={"limit": 1, "offset": 1})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": "https://openalex.org/A2",
+            "name": "Bob Jones",
+            "orcid": None,
+            "institution": {
+                "id": "https://openalex.org/I1",
+                "name": "University of Leeds",
+                "country": "GB",
+            },
+            "paper_count": 1,
+        }
+    ]
+
+
+def test_author_search_endpoint_supports_query_filter(client: TestClient) -> None:
+    response = client.get("/authors/search", params={"query": "alice"})
+
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "id": "https://openalex.org/A1",
+            "name": "Alice Smith",
+            "orcid": "https://orcid.org/0000-0000-0000-0001",
+            "institution": {
+                "id": "https://openalex.org/I1",
+                "name": "University of Leeds",
+                "country": "GB",
+            },
+            "paper_count": 2,
+        }
+    ]
+
+
 def test_topic_endpoints_return_topics_and_topic_papers(client: TestClient) -> None:
     topics_response = client.get("/topics")
     topic_papers_response = client.get("/topics/topic:computer-vision/papers")
