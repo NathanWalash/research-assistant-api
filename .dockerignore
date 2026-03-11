@@ -12,3 +12,4 @@ __pycache__/
 *.pyc
 tests/
 UniOfLeedsArticles2018_to_Present.csv
+src/research_assistant_api/frontend/node_modules/

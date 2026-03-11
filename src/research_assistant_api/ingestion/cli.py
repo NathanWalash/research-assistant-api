@@ -1,11 +1,12 @@
 import argparse
 import json
+import sys
 from collections.abc import Sequence
 from dataclasses import asdict
 
 from research_assistant_api.db.session import get_session_factory
 from research_assistant_api.ingestion.config import IngestionConfig
-from research_assistant_api.ingestion.service import CsvIngestionService
+from research_assistant_api.ingestion.service import CsvIngestionService, IngestionProgress
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,7 +31,51 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="Optional limit for dry-run style validation against a subset of rows.",
     )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress per-batch ingestion progress output.",
+    )
     return parser
+
+
+def _format_eta(estimated_remaining_seconds: int | None) -> str:
+    if estimated_remaining_seconds is None:
+        return ""
+    return f", eta {estimated_remaining_seconds}s"
+
+
+def _format_ratio(processed: int, total: int | None) -> str:
+    if total is None:
+        return f"{processed}/?"
+    return f"{processed}/{total}"
+
+
+def print_progress(progress: IngestionProgress) -> None:
+    if progress.phase == "citations":
+        print(
+            "Ingestion citations: rows "
+            f"{_format_ratio(progress.citation_rows_processed, progress.citation_rows_total)}, "
+            f"citations upserted {progress.citations_upserted}, "
+            f"skipped missing papers {progress.citations_skipped_missing_papers}, "
+            f"elapsed {progress.elapsed_seconds}s"
+            f"{_format_eta(progress.estimated_remaining_seconds)}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return
+
+    print(
+        "Ingestion metadata: rows "
+        f"{_format_ratio(progress.metadata_rows_processed, progress.metadata_rows_total)}, "
+        f"valid {progress.metadata_rows_processed - progress.source_rows_skipped}, "
+        f"skipped {progress.source_rows_skipped}, "
+        f"papers upserted {progress.papers_upserted}, "
+        f"elapsed {progress.elapsed_seconds}s"
+        f"{_format_eta(progress.estimated_remaining_seconds)}",
+        file=sys.stderr,
+        flush=True,
+    )
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -44,7 +89,10 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     session_factory = get_session_factory()
     with session_factory() as session:
-        summary = CsvIngestionService(session).ingest(config)
+        summary = CsvIngestionService(session).ingest(
+            config,
+            progress_callback=None if args.quiet else print_progress,
+        )
 
     print(json.dumps(asdict(summary), indent=2, sort_keys=True))
     return 0

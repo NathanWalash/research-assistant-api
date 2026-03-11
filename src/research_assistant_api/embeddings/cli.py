@@ -34,8 +34,20 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def print_progress(progress: EmbeddingProgress) -> None:
+    percentage = 0.0
+    if progress.papers_total > 0:
+        percentage = (progress.papers_processed / progress.papers_total) * 100
+    eta_text = (
+        f", eta {progress.estimated_remaining_seconds}s"
+        if progress.estimated_remaining_seconds is not None
+        else ""
+    )
     print(
-        f"Embedded {progress.papers_processed}/{progress.papers_total} papers",
+        "Embedded "
+        f"{progress.papers_processed}/{progress.papers_total} papers "
+        f"({percentage:.1f}%), "
+        f"elapsed {progress.elapsed_seconds}s"
+        f"{eta_text}",
         file=sys.stderr,
         flush=True,
     )

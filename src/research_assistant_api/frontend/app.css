@@ -489,14 +489,22 @@ body[data-page="home"] .action-card {
 }
 
 body[data-page="projects"] .projects-grid {
-  align-items: stretch;
+  align-items: start;
 }
 
 body[data-page="projects"] .projects-grid > .project-pane {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   min-height: 0;
+}
+
+body[data-page="projects"] .projects-top-grid > .project-pane {
+  padding: 22px;
+}
+
+body[data-page="projects"] .project-pane--current {
+  padding: 16px 18px;
 }
 
 body[data-page="projects"] .project-pane .card-header + .stack-form,
@@ -511,13 +519,43 @@ body[data-page="projects"] .project-pane .helper-text {
   line-height: 1.45;
 }
 
+body[data-page="projects"] .project-pane--current .project-edit-form {
+  flex: 0 1 auto;
+  gap: 10px;
+}
+
+body[data-page="projects"] .project-pane--current .project-edit-form > .project-save-button {
+  width: 100%;
+  min-width: 0;
+  justify-self: stretch;
+  align-self: start;
+  min-height: 36px;
+}
+
+body[data-page="projects"] .project-pane--current .helper-text {
+  margin-top: auto;
+}
+
+body[data-page="projects"] .project-pane--current .project-actions {
+  margin-top: 10px;
+}
+
 body[data-page="projects"] .project-pane .result-list {
   align-content: start;
 }
 
-body[data-page="projects"] .project-list,
+body[data-page="projects"] .project-list {
+  height: clamp(205px, 30vh, 300px);
+  min-height: clamp(205px, 30vh, 300px);
+  max-height: clamp(205px, 30vh, 300px);
+  overflow: auto;
+  padding-right: 4px;
+}
+
 body[data-page="projects"] .reading-list-results {
-  max-height: clamp(240px, 38vh, 460px);
+  height: clamp(244px, 35vh, 344px);
+  min-height: clamp(244px, 35vh, 344px);
+  max-height: clamp(244px, 35vh, 344px);
   overflow: auto;
   padding-right: 4px;
 }
@@ -791,7 +829,8 @@ body[data-page="projects"] .project-recommend-form .inline-grid {
 }
 
 .analytics-author-search-results {
-  max-height: clamp(132px, 22vh, 220px);
+  min-height: clamp(220px, 30vh, 320px);
+  max-height: clamp(320px, 44vh, 520px);
   overflow: auto;
   align-content: start;
 }
@@ -817,7 +856,7 @@ body[data-page="projects"] .project-recommend-form .inline-grid {
 }
 
 .analytics-author-selected-toolbar {
-  margin: 0 0 8px;
+  margin: 2px 0 10px;
   justify-content: space-between;
   align-items: center;
 }
@@ -826,20 +865,28 @@ body[data-page="projects"] .project-recommend-form .inline-grid {
   margin: 0;
 }
 
+.analytics-author-card {
+  display: grid;
+  gap: 12px;
+}
+
 .analytics-author-results {
-  --analytics-bottom-row-height: 152px;
+  --analytics-bottom-row-height: 154px;
   --analytics-bottom-gap: 18px;
-  max-height: calc((var(--analytics-bottom-row-height) * 3) + (var(--analytics-bottom-gap) * 2));
-  height: auto;
-  overflow: hidden;
+  min-height: calc((var(--analytics-bottom-row-height) * 4) + (var(--analytics-bottom-gap) * 3));
+  max-height: calc((var(--analytics-bottom-row-height) * 4) + (var(--analytics-bottom-gap) * 3));
+  height: calc((var(--analytics-bottom-row-height) * 4) + (var(--analytics-bottom-gap) * 3));
+  overflow: auto;
+  padding-right: 4px;
   align-content: start;
 }
 
 #analytics-author-papers-results .result-item {
   display: grid;
-  grid-template-rows: auto auto 1fr;
-  height: var(--analytics-bottom-row-height);
-  overflow: hidden;
+  grid-template-rows: auto auto auto;
+  gap: 9px;
+  min-height: var(--analytics-bottom-row-height);
+  height: auto;
   padding: 12px 14px;
 }
 
@@ -859,11 +906,15 @@ body[data-page="projects"] .project-recommend-form .inline-grid {
   color: var(--accent-deep);
 }
 
+#analytics-author-papers-results .badge-row {
+  margin: 2px 0 0;
+}
+
 #analytics-author-papers-results .result-meta {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px 8px;
-  margin: 0;
+  margin: 4px 0 0;
 }
 
 #analytics-author-papers-results .result-meta small {
@@ -971,6 +1022,39 @@ body[data-page="projects"] .project-recommend-card {
   width: 100%;
 }
 
+body[data-page="projects"] .project-recommend-card .card-header + .helper-text {
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+body[data-page="projects"] .project-recommend-form + .project-recommend-results {
+  margin-top: 12px;
+}
+
+body[data-page="projects"] #project-recommend-results .result-item {
+  padding: 16px 17px;
+  gap: 10px;
+}
+
+body[data-page="projects"] #project-recommend-results .badge-row {
+  margin: 8px 0 10px;
+}
+
+body[data-page="projects"] #project-recommend-results .result-meta {
+  gap: 8px;
+}
+
+body[data-page="projects"] #project-recommend-results .result-actions {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+body[data-page="projects"] #project-recommend-results .result-actions .button {
+  width: 100%;
+}
+
 body[data-page="account"] .account-quick-links {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -1042,7 +1126,7 @@ body[data-page="discover"] .split-columns > section h4 {
 }
 
 .discover-scroll-window {
-  max-height: 356px;
+  max-height: 324px;
   overflow: auto;
   padding-right: 4px;
 }
@@ -1054,11 +1138,11 @@ body[data-page="discover"] .split-columns > section h4 {
 }
 
 .authors-window {
-  max-height: 332px;
+  max-height: 300px;
 }
 
 .notes-window {
-  max-height: 320px;
+  max-height: 284px;
 }
 
 .graph-window {
@@ -2014,6 +2098,10 @@ textarea {
   .api-table {
     min-width: 980px;
   }
+
+  body[data-page="projects"] #project-recommend-results .result-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -2036,6 +2124,17 @@ textarea {
     grid-template-columns: 1fr;
   }
 
+  .analytics-author-search-results {
+    min-height: 220px;
+    max-height: 360px;
+  }
+
+  .analytics-author-results {
+    min-height: auto;
+    max-height: none;
+    height: auto;
+  }
+
   body[data-page="account"] .account-quick-links,
   body[data-page="account"] .account-summary-grid {
     grid-template-columns: 1fr;
@@ -2044,6 +2143,13 @@ textarea {
   body[data-page="projects"] .project-pane .button-row,
   body[data-page="projects"] .project-recommend-form .inline-grid {
     grid-template-columns: 1fr;
+  }
+
+  body[data-page="projects"] .project-list,
+  body[data-page="projects"] .reading-list-results {
+    height: 260px;
+    min-height: 260px;
+    max-height: 260px;
   }
 
   .discover-search-actions {
@@ -2061,6 +2167,10 @@ textarea {
   #search-results .result-actions,
   #similar-results .result-actions,
   #citation-results .result-actions {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-page="projects"] #project-recommend-results .result-actions {
     grid-template-columns: 1fr;
   }
 

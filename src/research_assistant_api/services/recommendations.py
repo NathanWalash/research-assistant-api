@@ -230,7 +230,7 @@ class RecommendationService:
                 RecommendationCandidate(
                     paper=paper,
                     semantic_score=(
-                        cosine_similarity(project_embedding or [], paper.embedding or [])
+                        cosine_similarity(project_embedding, paper.embedding)
                         if project_embedding is not None and paper.embedding is not None
                         else 0.0
                     ),
@@ -253,18 +253,16 @@ class RecommendationService:
 
         scored_candidates: list[RecommendationCandidate] = []
         for candidate in ranked_candidates:
-            recommendation_score = (
+            raw_recommendation_score = (
                 scoring.semantic_weight * candidate.semantic_score
                 + scoring.citation_weight * candidate.citation_score
             )
-            if recommendation_score <= 0:
-                continue
             scored_candidates.append(
                 RecommendationCandidate(
                     paper=candidate.paper,
                     semantic_score=candidate.semantic_score,
                     citation_score=candidate.citation_score,
-                    recommendation_score=recommendation_score,
+                    recommendation_score=max(raw_recommendation_score, 0.0),
                 )
             )
         return [
