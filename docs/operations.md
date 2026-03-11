@@ -13,12 +13,14 @@ Useful options:
 - `--limit 100`
 - `--csv-path path/to/file.csv`
 - `--citation-csv-path data/derived/leeds_citation_edges.csv`
+- `--quiet` to suppress per-batch progress output
 
 Operational notes:
 
 - ingestion is idempotent for existing keys and safe to rerun
 - malformed rows are skipped and counted in the CLI summary
 - citation edges referencing missing papers are skipped to preserve relational integrity
+- the CLI now prints batch progress with processed rows, skipped rows, elapsed time, and ETA
 
 ## Embeddings
 
@@ -34,7 +36,7 @@ Regenerate all embeddings:
 .\.venv\Scripts\python.exe -m research_assistant_api.embeddings.cli --force
 ```
 
-The CLI prints batch progress as `Embedded X/Y papers`.
+The CLI prints batch progress with processed count, percentage, elapsed time, and ETA.
 
 Useful options:
 

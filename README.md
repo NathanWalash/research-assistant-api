@@ -128,6 +128,7 @@ Role:
 - upserts papers/authors/institutions/topics/authorship links
 - optionally imports citation edges from a dedicated edge CSV
 - skips malformed rows and reports skip counts instead of failing the full run
+- prints live batch progress with processed rows, skipped rows, elapsed time, and ETA
 
 Time complexity:
 
@@ -147,7 +148,7 @@ Role:
 - computes vectors in batches
 - writes vectors to `papers.embedding`
 - supports incremental mode (missing only) and `--force` re-embed mode
-- prints incremental progress (`Embedded X/Y papers`)
+- prints incremental progress with processed count, percentage, elapsed time, and ETA
 
 Approximate complexity:
 
