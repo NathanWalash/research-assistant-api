@@ -24,8 +24,8 @@ services:
       RESEARCH_API_DATABASE_URL: postgresql+psycopg://research_user:research_password@db:5432/research_assistant
       RESEARCH_API_ENVIRONMENT: development
       RESEARCH_API_JWT_SECRET_KEY: change-this-development-secret
-      RESEARCH_API_MCP_ENABLED: "false"
-      RESEARCH_API_MCP_MOUNT_PATH: /mcp
+      RESEARCH_API_MCP_ENABLED: ${RESEARCH_API_MCP_ENABLED:-false}
+      RESEARCH_API_MCP_MOUNT_PATH: ${RESEARCH_API_MCP_MOUNT_PATH:-/mcp}
     ports:
       - "8000:8000"
     depends_on:

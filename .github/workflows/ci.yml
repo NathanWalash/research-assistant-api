@@ -49,13 +49,40 @@ jobs:
           python -m pip install -e ".[dev]"
 
       - name: Verify MCP tools and mount behavior
-        run: python -m pytest tests/test_mcp_server.py tests/test_mcp_public_tools.py tests/test_mcp_http_mount.py
+        run: python -m pytest tests/test_mcp_server.py tests/test_mcp_public_tools.py tests/test_mcp_http_mount.py tests/test_mcp_http_integration.py
+
+  frontend-build:
+    name: Verify frontend build output
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: src/research_assistant_api/frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: src/research_assistant_api/frontend
+
+      - name: Build frontend bundle
+        run: npm run build
+        working-directory: src/research_assistant_api/frontend
+
+      - name: Verify committed bundle is up to date
+        run: git diff --exit-code -- src/research_assistant_api/frontend/main.js
 
   test:
     name: Run Python smoke tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [api-contract, mcp-contract]
+    needs: [api-contract, mcp-contract, frontend-build]
 
     steps:
       - name: Check out repository
@@ -172,6 +199,47 @@ jobs:
           done
           docker compose --profile app logs api --tail 200
           exit 1
+
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose --profile app logs api --tail 200
+
+      - name: Stop API stack
+        if: always()
+        run: docker compose --profile app down -v
+
+  docker-mcp-smoke:
+    name: Verify Docker MCP mount
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Start API stack with MCP enabled
+        run: RESEARCH_API_MCP_ENABLED=true RESEARCH_API_MCP_MOUNT_PATH=/mcp docker compose --profile app up -d --build
+
+      - name: Wait for API health
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8000/health; then
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose --profile app logs api --tail 200
+          exit 1
+
+      - name: Verify MCP route is mounted
+        run: |
+          CODE=$(curl --silent --output /dev/null --write-out "%{http_code}" http://127.0.0.1:8000/mcp)
+          if [ "$CODE" = "404" ]; then
+            echo "MCP mount returned 404"
+            docker compose --profile app logs api --tail 200
+            exit 1
+          fi
+          echo "MCP mount returned HTTP $CODE"
 
       - name: Show container logs on failure
         if: failure()
