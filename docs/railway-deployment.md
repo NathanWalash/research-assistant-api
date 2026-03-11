@@ -75,9 +75,7 @@ Use this when your local database is already populated with:
 #### B) Export data-only snapshot from local Postgres
 
 ```bash
-pg_dump --data-only --no-owner --no-privileges --format=custom ^
-  --file artifacts/research_assistant_data.dump ^
-  "postgresql://research_user:research_password@localhost:5433/research_assistant"
+pg_dump --data-only --no-owner --no-privileges --format=custom --file artifacts/research_assistant_data.dump "postgresql://research_user:research_password@localhost:5433/research_assistant"
 ```
 
 #### C) Deploy app on Railway (schema migrations on startup)
@@ -87,8 +85,7 @@ The container entrypoint applies migrations automatically.
 #### D) Restore snapshot into Railway Postgres
 
 ```bash
-pg_restore --data-only --no-owner --no-privileges ^
-  --dbname "$RAILWAY_DATABASE_URL" artifacts/research_assistant_data.dump
+pg_restore --data-only --no-owner --no-privileges --dbname "$RAILWAY_DATABASE_URL" artifacts/research_assistant_data.dump
 ```
 
 #### E) Verify seed success

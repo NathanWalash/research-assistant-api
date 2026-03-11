@@ -117,9 +117,7 @@ If you already populated local Postgres (ingestion + embeddings + citation edges
 From host machine with `pg_dump`:
 
 ```bash
-pg_dump --data-only --no-owner --no-privileges --format=custom ^
-  --file artifacts/research_assistant_data.dump ^
-  "postgresql://research_user:research_password@localhost:5433/research_assistant"
+pg_dump --data-only --no-owner --no-privileges --format=custom --file artifacts/research_assistant_data.dump "postgresql://research_user:research_password@localhost:5433/research_assistant"
 ```
 
 Or from Dockerized Postgres:
@@ -135,8 +133,7 @@ docker compose cp db:/tmp/research_assistant_data.dump artifacts/research_assist
 Run migrations first on the target (schema must exist), then restore data:
 
 ```bash
-pg_restore --data-only --no-owner --no-privileges ^
-  --dbname "$RAILWAY_DATABASE_URL" artifacts/research_assistant_data.dump
+pg_restore --data-only --no-owner --no-privileges --dbname "$RAILWAY_DATABASE_URL" artifacts/research_assistant_data.dump
 ```
 
 ### 3) Verify
