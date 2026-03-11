@@ -265,6 +265,28 @@ def test_project_recommendations_allow_citation_mode_without_embeddings(
     assert response.json() == []
 
 
+def test_project_recommendations_citation_mode_returns_ranked_candidates_without_edges(
+    client: TestClient,
+) -> None:
+    headers = _register_user(client, "owner-citation@example.com")
+    project_id = _create_project(client, headers)
+    _add_project_paper(client, project_id, "https://openalex.org/W5", headers)
+
+    response = client.get(
+        f"/projects/{project_id}/recommendations",
+        params={"mode": "citation", "limit": 3},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload
+    assert all(item["id"] != "https://openalex.org/W5" for item in payload)
+    assert all(item["scoring_mode"] == "citation" for item in payload)
+    assert all(item["citation_score"] == 0.0 for item in payload)
+    assert all(item["recommendation_score"] == 0.0 for item in payload)
+
+
 def test_project_recommendations_require_authentication(client: TestClient) -> None:
     response = client.get("/projects/project-1/recommendations")
 

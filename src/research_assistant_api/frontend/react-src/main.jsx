@@ -35,6 +35,8 @@ import {
 
 const SEARCH_LIMIT = 3;
 const ANALYTICS_PAGE_LIMIT = 3;
+const ANALYTICS_AUTHOR_PAGE_LIMIT = 4;
+const ANALYTICS_AUTHOR_SEARCH_LIMIT = 10;
 const GRAPH_PAGE_LIMIT = 3;
 const CITATION_SIDE_LIMIT = GRAPH_PAGE_LIMIT;
 const DISCOVER_IDLE_SUMMARY = "Run a search to load papers.";
@@ -796,6 +798,7 @@ function AnalyticsPage() {
   const [topPapersOffset, setTopPapersOffset] = useState(0);
   const [topPapersHasMore, setTopPapersHasMore] = useState(false);
   const [topics, setTopics] = useState([]);
+  const [topicPreviewById, setTopicPreviewById] = useState({});
   const [topicsOffset, setTopicsOffset] = useState(0);
   const [topicsHasMore, setTopicsHasMore] = useState(false);
   const [trends, setTrends] = useState([]);
@@ -903,6 +906,50 @@ function AnalyticsPage() {
   }, [topPapers, request, topPaperAuthorPreviewById]);
 
   useEffect(() => {
+    const topicIds = [...new Set(topics.map((topic) => topic.id))];
+    if (!topicIds.length) {
+      return;
+    }
+
+    const pendingTopicIds = topicIds.filter((topicId) => !(topicId in topicPreviewById));
+    if (!pendingTopicIds.length) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadTopicPreviews() {
+      const previews = await Promise.all(
+        pendingTopicIds.map(async (topicId) => {
+          try {
+            const papers = await request(`/topics/${encodeURIComponent(topicId)}/papers?limit=1&offset=0`);
+            return [topicId, papers[0] ?? null];
+          } catch {
+            return [topicId, null];
+          }
+        }),
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      setTopicPreviewById((previous) => {
+        const next = { ...previous };
+        previews.forEach(([topicId, preview]) => {
+          next[topicId] = preview;
+        });
+        return next;
+      });
+    }
+
+    void loadTopicPreviews();
+    return () => {
+      cancelled = true;
+    };
+  }, [topics, request, topicPreviewById]);
+
+  useEffect(() => {
     const normalizedQuery = cleanText(authorSearchQuery ?? "").trim();
     if (!normalizedQuery || resolveAuthorIdQuery(normalizedQuery) || selectedAuthorId) {
       setAuthorMatches([]);
@@ -914,7 +961,7 @@ function AnalyticsPage() {
       try {
         const params = new URLSearchParams({
           query: normalizedQuery,
-          limit: "8",
+          limit: String(ANALYTICS_AUTHOR_SEARCH_LIMIT),
           offset: "0",
         });
         const matches = await request(`/authors/search?${params.toString()}`);
@@ -1006,7 +1053,7 @@ function AnalyticsPage() {
     setTrendsOffset(offset >= response.length ? 0 : offset);
   }
 
-  async function searchAuthors(queryText, limit = 8) {
+  async function searchAuthors(queryText, limit = ANALYTICS_AUTHOR_SEARCH_LIMIT) {
     const normalizedQuery = cleanText(queryText ?? "").trim();
     if (!normalizedQuery) {
       return [];
@@ -1035,14 +1082,14 @@ function AnalyticsPage() {
       request(`/authors/${encodeURIComponent(authorId)}`),
       request(
         `/authors/${encodeURIComponent(authorId)}/papers?limit=${
-          ANALYTICS_PAGE_LIMIT + 1
+          ANALYTICS_AUTHOR_PAGE_LIMIT + 1
         }&offset=${offset}`,
       ),
     ]);
 
     setSelectedAuthorDetail(authorDetail);
-    setAuthorPapers(papers.slice(0, ANALYTICS_PAGE_LIMIT));
-    setAuthorPapersHasMore(papers.length > ANALYTICS_PAGE_LIMIT);
+    setAuthorPapers(papers.slice(0, ANALYTICS_AUTHOR_PAGE_LIMIT));
+    setAuthorPapersHasMore(papers.length > ANALYTICS_AUTHOR_PAGE_LIMIT);
     setAuthorPapersOffset(offset);
   }
 
@@ -1069,7 +1116,7 @@ function AnalyticsPage() {
         return;
       }
 
-      const matches = await searchAuthors(normalizedQuery, 8);
+      const matches = await searchAuthors(normalizedQuery, ANALYTICS_AUTHOR_SEARCH_LIMIT);
       setAuthorMatches(matches);
       if (!matches.length) {
         setStatus({
@@ -1312,6 +1359,14 @@ function AnalyticsPage() {
               {topics.length ? (
                 topics.map((topic) => {
                   const maxPaperCount = Math.max(...topics.map((entry) => entry.paper_count), 1);
+                  const topicPreview = topicPreviewById[topic.id];
+                  let previewMeta = "Recent paper: loading...";
+                  if (topicPreview === null) {
+                    previewMeta = "Recent paper: unavailable";
+                  } else if (topicPreview) {
+                    const venue = topicPreview.journal ?? topicPreview.work_type ?? "Unknown venue";
+                    previewMeta = `Recent paper: ${topicPreview.publication_year} · ${venue}`;
+                  }
                   return (
                     <BarItem
                       key={topic.id}
@@ -1319,7 +1374,7 @@ function AnalyticsPage() {
                       valueLabel={`${formatNumber(topic.paper_count)} papers`}
                       ratio={topic.paper_count / maxPaperCount}
                       meta={[
-                        topic.field ? `Field: ${topic.field}` : `Topic ID: ${topic.id}`,
+                        previewMeta,
                         `${formatNumber(topic.total_citation_count)} citations`,
                         `${topic.average_citation_count.toFixed(1)} avg citations`,
                       ]}
@@ -1472,7 +1527,11 @@ function AnalyticsPage() {
         </section>
 
         <section className="analytics-grid analytics-bottom-grid analytics-single-grid">
-          <article className="surface-card analytics-bottom-card">
+          <article
+            className={`surface-card analytics-bottom-card analytics-author-card ${
+              selectedAuthorId ? "is-selected" : "is-searching"
+            }`}
+          >
             <div className="card-header">
               <div>
                 <p className="section-eyebrow">Authors</p>
@@ -1591,7 +1650,10 @@ function AnalyticsPage() {
                       type="button"
                       disabled={authorPapersOffset <= 0}
                       onClick={() => {
-                        const nextOffset = Math.max(authorPapersOffset - ANALYTICS_PAGE_LIMIT, 0);
+                        const nextOffset = Math.max(
+                          authorPapersOffset - ANALYTICS_AUTHOR_PAGE_LIMIT,
+                          0,
+                        );
                         void loadAuthorInsight({ offset: nextOffset }).catch((error) => {
                           setStatus({ message: toErrorMessage(error), tone: "error" });
                         });
@@ -1599,13 +1661,17 @@ function AnalyticsPage() {
                     >
                       Previous
                     </button>
-                    <p className="helper-text">Page {Math.floor(authorPapersOffset / ANALYTICS_PAGE_LIMIT) + 1}</p>
+                    <p className="helper-text">
+                      Page {Math.floor(authorPapersOffset / ANALYTICS_AUTHOR_PAGE_LIMIT) + 1}
+                    </p>
                     <button
                       className="button ghost compact"
                       type="button"
                       disabled={!authorPapersHasMore}
                       onClick={() => {
-                        void loadAuthorInsight({ offset: authorPapersOffset + ANALYTICS_PAGE_LIMIT }).catch((error) => {
+                        void loadAuthorInsight({
+                          offset: authorPapersOffset + ANALYTICS_AUTHOR_PAGE_LIMIT,
+                        }).catch((error) => {
                           setStatus({ message: toErrorMessage(error), tone: "error" });
                         });
                       }}
@@ -1828,6 +1894,12 @@ function ProjectsPage() {
   const [recommendationMode, setRecommendationMode] = useState("hybrid");
   const [semanticWeight, setSemanticWeight] = useState("0.7");
   const [citationWeight, setCitationWeight] = useState("0.3");
+  const [hasRunRecommendations, setHasRunRecommendations] = useState(false);
+  const [recommendationStatus, setRecommendationStatus] = useState({ message: "", tone: "neutral" });
+  const [pendingRecommendationAddId, setPendingRecommendationAddId] = useState("");
+  const [pendingRecommendationViewId, setPendingRecommendationViewId] = useState("");
+  const [recommendationPreviewPaper, setRecommendationPreviewPaper] = useState(null);
+  const [recommendationPreviewOpen, setRecommendationPreviewOpen] = useState(false);
   const [pendingCreate, setPendingCreate] = useState(false);
   const [pendingUpdate, setPendingUpdate] = useState(false);
   const [pendingRecommendations, setPendingRecommendations] = useState(false);
@@ -1839,10 +1911,26 @@ function ProjectsPage() {
       setReadingItems([]);
       setSelectedReadingItemId("");
       setRecommendations([]);
+      setHasRunRecommendations(false);
+      setRecommendationStatus({ message: "", tone: "neutral" });
+      setRecommendationPreviewPaper(null);
+      setRecommendationPreviewOpen(false);
+      setPendingRecommendationViewId("");
       return;
     }
     void loadProjects();
   }, [currentUser]);
+
+  useEffect(() => {
+    if (recommendationPreviewOpen) {
+      document.body.classList.add("modal-open");
+    } else {
+      document.body.classList.remove("modal-open");
+    }
+    return () => {
+      document.body.classList.remove("modal-open");
+    };
+  }, [recommendationPreviewOpen]);
 
   async function loadProjects() {
     const loadedProjects = await request("/projects", { auth: true });
@@ -1853,6 +1941,11 @@ function ProjectsPage() {
       setReadingItems([]);
       setSelectedReadingItemId("");
       setRecommendations([]);
+      setHasRunRecommendations(false);
+      setRecommendationStatus({ message: "", tone: "neutral" });
+      setRecommendationPreviewPaper(null);
+      setRecommendationPreviewOpen(false);
+      setPendingRecommendationViewId("");
       return;
     }
 
@@ -1869,6 +1962,11 @@ function ProjectsPage() {
     setEditTitle(project.title);
     setEditDescription(project.description ?? "");
     setRecommendations([]);
+    setHasRunRecommendations(false);
+    setRecommendationStatus({ message: "", tone: "neutral" });
+    setRecommendationPreviewPaper(null);
+    setRecommendationPreviewOpen(false);
+    setPendingRecommendationViewId("");
     const params = new URLSearchParams(location.search);
     params.set("project", project.id);
     navigate({ pathname: location.pathname, search: params.toString() }, { replace: true });
@@ -2051,12 +2149,32 @@ function ProjectsPage() {
       setStatus({ message: "Select a project before requesting recommendations.", tone: "error" });
       return;
     }
-    const params = new URLSearchParams();
-    params.set("mode", recommendationMode);
-    params.set("limit", "10");
-    params.set("semantic_weight", semanticWeight);
-    params.set("citation_weight", citationWeight);
+    if (!readingItems.length) {
+      setRecommendations([]);
+      setHasRunRecommendations(false);
+      const nextStatus = {
+        message: "Add at least one paper to this project's reading list before running recommendations.",
+        tone: "error",
+      };
+      setStatus(nextStatus);
+      setRecommendationStatus(nextStatus);
+      return;
+    }
 
+    const mode =
+      recommendationMode === "semantic" || recommendationMode === "citation"
+        ? recommendationMode
+        : "hybrid";
+
+    const params = new URLSearchParams();
+    params.set("mode", mode);
+    params.set("limit", "10");
+    if (mode === "hybrid") {
+      params.set("semantic_weight", semanticWeight || "0.7");
+      params.set("citation_weight", citationWeight || "0.3");
+    }
+
+    setHasRunRecommendations(true);
     setPendingRecommendations(true);
     try {
       const result = await request(
@@ -2064,14 +2182,84 @@ function ProjectsPage() {
         { auth: true },
       );
       setRecommendations(result);
-      setStatus({ message: "Recommendations updated.", tone: "success" });
+      if (result.length) {
+        const nextStatus = {
+          message: `Loaded ${result.length} recommendation${result.length === 1 ? "" : "s"}.`,
+          tone: "success",
+        };
+        setStatus(nextStatus);
+        setRecommendationStatus(nextStatus);
+      } else {
+        const nextStatus = {
+          message:
+            mode === "hybrid"
+              ? "No hybrid recommendations were returned. Try semantic-only mode to verify embedding coverage."
+              : `No ${mode} recommendations were returned for this project.`,
+          tone: "neutral",
+        };
+        setStatus(nextStatus);
+        setRecommendationStatus(nextStatus);
+      }
     } catch (error) {
       setRecommendations([]);
-      setStatus({ message: toErrorMessage(error), tone: "error" });
+      const nextStatus = { message: toErrorMessage(error), tone: "error" };
+      setStatus(nextStatus);
+      setRecommendationStatus(nextStatus);
     } finally {
       setPendingRecommendations(false);
     }
   }
+
+  async function handleAddRecommendationToProject(paperId) {
+    if (!selectedProject) {
+      return;
+    }
+
+    setPendingRecommendationAddId(paperId);
+    try {
+      await request(`/projects/${selectedProject.id}/reading-list`, {
+        method: "POST",
+        auth: true,
+        body: {
+          paper_id: paperId,
+          priority: "medium",
+          notes: null,
+        },
+      });
+      await loadReadingList(selectedProject.id);
+      setRecommendations((current) => current.filter((paper) => paper.id !== paperId));
+      const nextStatus = { message: "Recommendation added to this project.", tone: "success" };
+      setStatus(nextStatus);
+      setRecommendationStatus(nextStatus);
+    } catch (error) {
+      const nextStatus = { message: toErrorMessage(error), tone: "error" };
+      setStatus(nextStatus);
+      setRecommendationStatus(nextStatus);
+    } finally {
+      setPendingRecommendationAddId("");
+    }
+  }
+
+  async function handleOpenRecommendationPreview(paperId) {
+    setPendingRecommendationViewId(paperId);
+    try {
+      const paper = await request(`/papers/${encodeURIComponent(paperId)}`);
+      setRecommendationPreviewPaper(paper);
+      setRecommendationPreviewOpen(true);
+    } catch (error) {
+      const nextStatus = { message: toErrorMessage(error), tone: "error" };
+      setStatus(nextStatus);
+      setRecommendationStatus(nextStatus);
+    } finally {
+      setPendingRecommendationViewId("");
+    }
+  }
+
+  const recommendationEmptyMessage = !hasRunRecommendations
+    ? "Choose a recommendation mode and run scoring."
+    : readingItems.length
+      ? "No recommendations were returned. Try another mode or adjust weights."
+      : "No recommendations yet. Add at least one paper to the reading list first.";
 
   return (
     <>
@@ -2181,13 +2369,17 @@ function ProjectsPage() {
                 <label>
                   <span>Description</span>
                   <textarea
-                    rows={4}
+                    rows={3}
                     value={editDescription}
                     onChange={(event) => setEditDescription(event.target.value)}
                     disabled={!selectedProject}
                   ></textarea>
                 </label>
-                <button className="button primary" type="submit" disabled={!selectedProject || pendingUpdate}>
+                <button
+                  className="button primary compact project-save-button"
+                  type="submit"
+                  disabled={!selectedProject || pendingUpdate}
+                >
                   {pendingUpdate ? "Saving..." : "Save project details"}
                 </button>
               </form>
@@ -2365,6 +2557,7 @@ function ProjectsPage() {
                 {pendingRecommendations ? "Scoring..." : "Load recommendations"}
               </button>
             </form>
+            <StatusBanner message={recommendationStatus.message} tone={recommendationStatus.tone} />
             <div className="result-list compact-list project-recommend-results" id="project-recommend-results">
               {recommendations.length ? (
                 recommendations.map((paper) => (
@@ -2380,13 +2573,112 @@ function ProjectsPage() {
                       paper.topic?.name ?? "No topic",
                       `wS=${paper.semantic_weight.toFixed(2)} wC=${paper.citation_weight.toFixed(2)}`,
                     ]}
+                    actions={[
+                      {
+                        label: "Open in Discover",
+                        tone: "secondary",
+                        onClick: () => {
+                          navigate(`/discover?paper=${encodeURIComponent(paper.id)}`);
+                        },
+                      },
+                      {
+                        label: pendingRecommendationViewId === paper.id ? "Loading..." : "View",
+                        tone: "ghost",
+                        disabled: Boolean(pendingRecommendationViewId),
+                        onClick: () => {
+                          void handleOpenRecommendationPreview(paper.id);
+                        },
+                      },
+                      {
+                        label: pendingRecommendationAddId === paper.id ? "Adding..." : "Add to project",
+                        tone: "primary",
+                        disabled: Boolean(pendingRecommendationAddId) || Boolean(pendingRecommendationViewId),
+                        onClick: () => {
+                          void handleAddRecommendationToProject(paper.id);
+                        },
+                      },
+                    ]}
                   />
                 ))
               ) : (
-                <EmptyState message="Choose a recommendation mode and run scoring." />
+                <EmptyState message={recommendationEmptyMessage} />
               )}
             </div>
           </section>
+
+          <Modal
+            open={recommendationPreviewOpen}
+            onClose={() => setRecommendationPreviewOpen(false)}
+            labelledBy="recommendation-preview-title"
+          >
+            <article className="surface-card modal-card">
+              <div className="card-header modal-header">
+                <div>
+                  <p className="section-eyebrow">Recommendation detail</p>
+                  <h2 id="recommendation-preview-title">
+                    {recommendationPreviewPaper?.title ?? "Recommended paper"}
+                  </h2>
+                </div>
+                <button
+                  className="button compact modal-close"
+                  type="button"
+                  onClick={() => setRecommendationPreviewOpen(false)}
+                >
+                  Close
+                </button>
+              </div>
+              <div className="meta-grid discover-meta-grid">
+                <MetaCard label="Paper ID" value={recommendationPreviewPaper?.id ?? "Not available"} />
+                <MetaCard label="Topic" value={recommendationPreviewPaper?.topic?.name ?? "No topic"} />
+                <MetaCard
+                  label="Published"
+                  value={formatDate(recommendationPreviewPaper?.publication_date)}
+                />
+                <MetaCard
+                  label="Citations"
+                  value={formatNumber(recommendationPreviewPaper?.citation_count)}
+                />
+                <MetaCard
+                  label="Year"
+                  value={recommendationPreviewPaper?.publication_year ?? "Not available"}
+                />
+                <MetaCard
+                  label="Journal"
+                  value={recommendationPreviewPaper?.journal ?? "Not available"}
+                />
+              </div>
+              {recommendationPreviewPaper?.abstract?.trim() ? (
+                <details className="paper-abstract-panel" open>
+                  <summary>Abstract</summary>
+                  <div className="prose-block">{recommendationPreviewPaper.abstract}</div>
+                </details>
+              ) : (
+                <p className="helper-text">No abstract is available for this paper.</p>
+              )}
+              <section className="surface-subsection">
+                <article className="modal-subcard">
+                  <h3>Authors</h3>
+                  <div className="result-list compact-list discover-scroll-window authors-window">
+                    {recommendationPreviewPaper?.authors?.length ? (
+                      recommendationPreviewPaper.authors.map((author) => (
+                        <ResultItem
+                          key={author.id}
+                          title={author.name}
+                          description={author.institution?.name ?? "Institution not available"}
+                          meta={[
+                            author.orcid ?? "No ORCID",
+                            author.is_corresponding ? "Corresponding author" : "Contributing author",
+                          ]}
+                        />
+                      ))
+                    ) : (
+                      <EmptyState message="No authorship metadata is available." />
+                    )}
+                  </div>
+                </article>
+              </section>
+            </article>
+          </Modal>
         </>
       )}
     </>
@@ -2400,6 +2692,7 @@ function DiscoverPage() {
   const params = new URLSearchParams(location.search);
 
   const [status, setStatus] = useState({ message: "", tone: "neutral" });
+  const [workspaceStatus, setWorkspaceStatus] = useState({ message: "", tone: "neutral" });
   const [topicOptions, setTopicOptions] = useState([{ value: "", label: "Any topic" }]);
   const [yearOptions, setYearOptions] = useState([{ value: "", label: "Any year" }]);
   const [query, setQuery] = useState(params.get("query") ?? "");
@@ -2445,6 +2738,12 @@ function DiscoverPage() {
       document.body.classList.remove("modal-open");
     };
   }, [paperModalOpen, workspaceModalOpen]);
+
+  useEffect(() => {
+    if (!workspaceModalOpen) {
+      setWorkspaceStatus({ message: "", tone: "neutral" });
+    }
+  }, [workspaceModalOpen, selectedPaper?.id]);
 
   useEffect(() => {
     function onKeyDown(event) {
@@ -2870,11 +3169,15 @@ function DiscoverPage() {
   async function handleSaveToProject(event) {
     event.preventDefault();
     if (!selectedPaper) {
-      setStatus({ message: "Select a paper before saving it to a project.", tone: "error" });
+      const nextStatus = { message: "Select a paper before saving it to a project.", tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
       return;
     }
     if (!saveProjectId) {
-      setStatus({ message: "Create or select a project first.", tone: "error" });
+      const nextStatus = { message: "Create or select a project first.", tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
       return;
     }
     try {
@@ -2887,20 +3190,28 @@ function DiscoverPage() {
           notes: null,
         },
       });
-      setStatus({ message: "Paper added to the selected project.", tone: "success" });
+      const nextStatus = { message: "Paper added to the selected project.", tone: "success" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
     } catch (error) {
-      setStatus({ message: toErrorMessage(error), tone: "error" });
+      const nextStatus = { message: toErrorMessage(error), tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
     }
   }
 
   async function handleSaveAnnotation(event) {
     event.preventDefault();
     if (!selectedPaper) {
-      setStatus({ message: "Choose a paper before saving annotations.", tone: "error" });
+      const nextStatus = { message: "Choose a paper before saving annotations.", tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
       return;
     }
     if (!annotationText.trim()) {
-      setStatus({ message: "Annotation text cannot be empty.", tone: "error" });
+      const nextStatus = { message: "Annotation text cannot be empty.", tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
       return;
     }
     try {
@@ -2910,20 +3221,26 @@ function DiscoverPage() {
           auth: true,
           body: { text: annotationText.trim() },
         });
-        setStatus({ message: "Annotation updated.", tone: "success" });
+        const nextStatus = { message: "Annotation updated.", tone: "success" };
+        setStatus(nextStatus);
+        setWorkspaceStatus(nextStatus);
       } else {
         await request(`/papers/${encodeURIComponent(selectedPaper.id)}/annotations`, {
           method: "POST",
           auth: true,
           body: { text: annotationText.trim() },
         });
-        setStatus({ message: "Annotation created.", tone: "success" });
+        const nextStatus = { message: "Annotation created.", tone: "success" };
+        setStatus(nextStatus);
+        setWorkspaceStatus(nextStatus);
       }
       setAnnotationId("");
       setAnnotationText("");
       await loadAnnotations(selectedPaper.id);
     } catch (error) {
-      setStatus({ message: toErrorMessage(error), tone: "error" });
+      const nextStatus = { message: toErrorMessage(error), tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
     }
   }
 
@@ -2936,8 +3253,13 @@ function DiscoverPage() {
       setAnnotationId("");
       setAnnotationText("");
       await loadAnnotations(selectedPaper.id);
+      const nextStatus = { message: "Annotation deleted.", tone: "success" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
     } catch (error) {
-      setStatus({ message: toErrorMessage(error), tone: "error" });
+      const nextStatus = { message: toErrorMessage(error), tone: "error" };
+      setStatus(nextStatus);
+      setWorkspaceStatus(nextStatus);
     }
   }
 
@@ -3043,6 +3365,7 @@ function DiscoverPage() {
                 setPaperModalOpen(false);
                 setWorkspaceModalOpen(false);
                 setStatus({ message: "", tone: "neutral" });
+                setWorkspaceStatus({ message: "", tone: "neutral" });
                 syncUrlState({
                   query: null,
                   topic: null,
@@ -3473,6 +3796,7 @@ function DiscoverPage() {
               Close
             </button>
           </div>
+          <StatusBanner message={workspaceStatus.message} tone={workspaceStatus.tone} />
           <div className="workspace-action-grid">
             <article className="modal-subcard workspace-action-card">
               <h3>Save to project</h3>
