@@ -1,6 +1,8 @@
-from collections.abc import Mapping
+import time
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from itertools import islice
+from pathlib import Path
 from typing import Any
 
 from sqlalchemy import func, select
@@ -43,6 +45,21 @@ class IngestionSummary:
 
 
 @dataclass(slots=True)
+class IngestionProgress:
+    phase: str
+    metadata_rows_processed: int
+    metadata_rows_total: int | None
+    citation_rows_processed: int
+    citation_rows_total: int | None
+    source_rows_skipped: int
+    papers_upserted: int
+    citations_upserted: int
+    citations_skipped_missing_papers: int
+    elapsed_seconds: int
+    estimated_remaining_seconds: int | None
+
+
+@dataclass(slots=True)
 class ParsedDatasetRow:
     paper: dict[str, Any]
     topic: dict[str, Any] | None
@@ -63,6 +80,24 @@ def _merge_prefer_non_null(
         if value is not None:
             merged[key] = value
     return merged
+
+
+def _count_csv_data_rows(csv_path: str | Path) -> int:
+    with Path(csv_path).open("r", encoding="utf-8-sig", newline="") as handle:
+        line_count = sum(1 for _ in handle)
+    return max(0, line_count - 1)
+
+
+def _estimate_remaining_seconds(
+    *,
+    processed: int,
+    total: int | None,
+    elapsed_seconds: int,
+) -> int | None:
+    if total is None or processed <= 0 or processed >= total:
+        return None
+    average_seconds_per_row = elapsed_seconds / processed
+    return int(average_seconds_per_row * (total - processed))
 
 
 def _build_upsert_statement(
@@ -233,23 +268,54 @@ class CsvIngestionService:
     def __init__(self, session: Session):
         self.session = session
 
-    def ingest(self, config: IngestionConfig) -> IngestionSummary:
+    def ingest(
+        self,
+        config: IngestionConfig,
+        *,
+        progress_callback: Callable[[IngestionProgress], None] | None = None,
+    ) -> IngestionSummary:
         summary = IngestionSummary()
         topic_batch: dict[str, dict[str, Any]] = {}
         paper_batch: dict[str, dict[str, Any]] = {}
         author_batch: dict[str, dict[str, Any]] = {}
         institution_batch: dict[str, dict[str, Any]] = {}
         authorship_batch: dict[tuple[str, str], dict[str, Any]] = {}
+        started_at = time.monotonic()
+
+        metadata_rows_total = _count_csv_data_rows(config.csv_path)
+        if config.limit is not None:
+            metadata_rows_total = min(metadata_rows_total, config.limit)
+        citation_rows_total = (
+            _count_csv_data_rows(config.citation_csv_path)
+            if config.citation_csv_path is not None
+            else None
+        )
 
         rows = iter_csv_rows(config.csv_path)
         if config.limit is not None:
             rows = islice(rows, config.limit)
 
+        metadata_rows_seen = 0
         for row in rows:
+            metadata_rows_seen += 1
             try:
                 parsed = parse_dataset_row(row)
             except ValueError:
                 summary.source_rows_skipped += 1
+                if (
+                    progress_callback is not None
+                    and metadata_rows_seen % config.batch_size == 0
+                ):
+                    self._emit_progress(
+                        phase="metadata",
+                        summary=summary,
+                        started_at=started_at,
+                        metadata_rows_processed=metadata_rows_seen,
+                        metadata_rows_total=metadata_rows_total,
+                        citation_rows_processed=0,
+                        citation_rows_total=citation_rows_total,
+                        progress_callback=progress_callback,
+                    )
                 continue
 
             summary.source_rows_processed += 1
@@ -287,6 +353,20 @@ class CsvIngestionService:
                     authorship_batch,
                     summary,
                 )
+            if (
+                progress_callback is not None
+                and metadata_rows_seen % config.batch_size == 0
+            ):
+                self._emit_progress(
+                    phase="metadata",
+                    summary=summary,
+                    started_at=started_at,
+                    metadata_rows_processed=metadata_rows_seen,
+                    metadata_rows_total=metadata_rows_total,
+                    citation_rows_processed=0,
+                    citation_rows_total=citation_rows_total,
+                    progress_callback=progress_callback,
+                )
 
         self._flush_batch(
             topic_batch,
@@ -296,7 +376,37 @@ class CsvIngestionService:
             authorship_batch,
             summary,
         )
-        self._import_citation_edges(config, summary)
+        if progress_callback is not None:
+            self._emit_progress(
+                phase="metadata",
+                summary=summary,
+                started_at=started_at,
+                metadata_rows_processed=metadata_rows_seen,
+                metadata_rows_total=metadata_rows_total,
+                citation_rows_processed=0,
+                citation_rows_total=citation_rows_total,
+                progress_callback=progress_callback,
+            )
+        citation_rows_processed = self._import_citation_edges(
+            config,
+            summary,
+            started_at=started_at,
+            metadata_rows_processed=metadata_rows_seen,
+            metadata_rows_total=metadata_rows_total,
+            citation_rows_total=citation_rows_total,
+            progress_callback=progress_callback,
+        )
+        if progress_callback is not None:
+            self._emit_progress(
+                phase="complete",
+                summary=summary,
+                started_at=started_at,
+                metadata_rows_processed=metadata_rows_seen,
+                metadata_rows_total=metadata_rows_total,
+                citation_rows_processed=citation_rows_processed,
+                citation_rows_total=citation_rows_total,
+                progress_callback=progress_callback,
+            )
         return summary
 
     def _flush_batch(
@@ -484,17 +594,39 @@ class CsvIngestionService:
         self,
         config: IngestionConfig,
         summary: IngestionSummary,
-    ) -> None:
+        *,
+        started_at: float,
+        metadata_rows_processed: int,
+        metadata_rows_total: int | None,
+        citation_rows_total: int | None,
+        progress_callback: Callable[[IngestionProgress], None] | None,
+    ) -> int:
         if config.citation_csv_path is None:
-            return
+            return 0
 
         summary.citation_import_skipped = False
         citation_batch: dict[tuple[str, str], dict[str, Any]] = {}
+        citation_rows_processed = 0
 
         for row in iter_csv_rows(config.citation_csv_path):
+            citation_rows_processed += 1
             citing_paper_id = normalize_optional_text(row.get("citing_paper_id"))
             cited_paper_id = normalize_optional_text(row.get("cited_paper_id"))
             if citing_paper_id is None or cited_paper_id is None:
+                if (
+                    progress_callback is not None
+                    and citation_rows_processed % config.batch_size == 0
+                ):
+                    self._emit_progress(
+                        phase="citations",
+                        summary=summary,
+                        started_at=started_at,
+                        metadata_rows_processed=metadata_rows_processed,
+                        metadata_rows_total=metadata_rows_total,
+                        citation_rows_processed=citation_rows_processed,
+                        citation_rows_total=citation_rows_total,
+                        progress_callback=progress_callback,
+                    )
                 continue
 
             citation_batch[(citing_paper_id, cited_paper_id)] = {
@@ -504,8 +636,76 @@ class CsvIngestionService:
 
             if len(citation_batch) >= config.batch_size:
                 self._flush_citations(citation_batch, summary)
+            if (
+                progress_callback is not None
+                and citation_rows_processed % config.batch_size == 0
+            ):
+                self._emit_progress(
+                    phase="citations",
+                    summary=summary,
+                    started_at=started_at,
+                    metadata_rows_processed=metadata_rows_processed,
+                    metadata_rows_total=metadata_rows_total,
+                    citation_rows_processed=citation_rows_processed,
+                    citation_rows_total=citation_rows_total,
+                    progress_callback=progress_callback,
+                )
 
         self._flush_citations(citation_batch, summary)
+        if progress_callback is not None:
+            self._emit_progress(
+                phase="citations",
+                summary=summary,
+                started_at=started_at,
+                metadata_rows_processed=metadata_rows_processed,
+                metadata_rows_total=metadata_rows_total,
+                citation_rows_processed=citation_rows_processed,
+                citation_rows_total=citation_rows_total,
+                progress_callback=progress_callback,
+            )
+        return citation_rows_processed
+
+    def _emit_progress(
+        self,
+        *,
+        phase: str,
+        summary: IngestionSummary,
+        started_at: float,
+        metadata_rows_processed: int,
+        metadata_rows_total: int | None,
+        citation_rows_processed: int,
+        citation_rows_total: int | None,
+        progress_callback: Callable[[IngestionProgress], None],
+    ) -> None:
+        elapsed_seconds = int(time.monotonic() - started_at)
+        if phase == "citations":
+            eta_seconds = _estimate_remaining_seconds(
+                processed=citation_rows_processed,
+                total=citation_rows_total,
+                elapsed_seconds=elapsed_seconds,
+            )
+        else:
+            eta_seconds = _estimate_remaining_seconds(
+                processed=metadata_rows_processed,
+                total=metadata_rows_total,
+                elapsed_seconds=elapsed_seconds,
+            )
+
+        progress_callback(
+            IngestionProgress(
+                phase=phase,
+                metadata_rows_processed=metadata_rows_processed,
+                metadata_rows_total=metadata_rows_total,
+                citation_rows_processed=citation_rows_processed,
+                citation_rows_total=citation_rows_total,
+                source_rows_skipped=summary.source_rows_skipped,
+                papers_upserted=summary.papers_upserted,
+                citations_upserted=summary.citations_upserted,
+                citations_skipped_missing_papers=summary.citations_skipped_missing_papers,
+                elapsed_seconds=elapsed_seconds,
+                estimated_remaining_seconds=eta_seconds,
+            )
+        )
 
     def _flush_citations(
         self,
