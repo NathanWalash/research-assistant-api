@@ -1,6 +1,7 @@
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from math import sqrt
+import time
 from typing import Protocol
 
 EMBEDDING_DIMENSIONS = 384
@@ -78,6 +79,8 @@ class EmbeddingGenerationSummary:
 class EmbeddingProgress:
     papers_processed: int
     papers_total: int
+    elapsed_seconds: int = 0
+    estimated_remaining_seconds: int | None = None
 
 
 class PaperEmbeddingService:
@@ -108,6 +111,7 @@ class PaperEmbeddingService:
             return summary
 
         effective_batch_size = max(1, batch_size or len(papers))
+        started_at = time.monotonic()
         for start in range(0, len(papers), effective_batch_size):
             batch = papers[start : start + effective_batch_size]
             texts = [build_embedding_text(paper) for paper in batch]
@@ -116,10 +120,27 @@ class PaperEmbeddingService:
             summary.papers_embedded += len(embeddings)
 
             if progress_callback is not None:
+                elapsed_seconds = int(time.monotonic() - started_at)
+                estimated_remaining_seconds = None
+                if (
+                    0 < summary.papers_embedded < summary.papers_selected
+                    and elapsed_seconds > 0
+                ):
+                    average_seconds_per_paper = (
+                        elapsed_seconds / summary.papers_embedded
+                    )
+                    remaining_papers = (
+                        summary.papers_selected - summary.papers_embedded
+                    )
+                    estimated_remaining_seconds = int(
+                        average_seconds_per_paper * remaining_papers
+                    )
                 progress_callback(
                     EmbeddingProgress(
                         papers_processed=summary.papers_embedded,
                         papers_total=summary.papers_selected,
+                        elapsed_seconds=elapsed_seconds,
+                        estimated_remaining_seconds=estimated_remaining_seconds,
                     )
                 )
 

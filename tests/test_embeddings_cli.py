@@ -69,6 +69,16 @@ def test_embeddings_cli_prints_summary_and_forwards_args(monkeypatch, capsys) ->
 
 
 def test_embeddings_cli_prints_progress_to_stderr(capsys) -> None:
-    cli.print_progress(EmbeddingProgress(papers_processed=3, papers_total=10))
+    cli.print_progress(
+        EmbeddingProgress(
+            papers_processed=3,
+            papers_total=10,
+            elapsed_seconds=9,
+            estimated_remaining_seconds=21,
+        )
+    )
 
-    assert capsys.readouterr().err == "Embedded 3/10 papers\n"
+    assert (
+        capsys.readouterr().err
+        == "Embedded 3/10 papers (30.0%), elapsed 9s, eta 21s\n"
+    )
