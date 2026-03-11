@@ -1,6 +1,5 @@
 import React from "react";
 import { Link, NavLink } from "react-router-dom";
-import { getUserDisplayName } from "./session.js";
 
 const INLINE_ALLOWED_TAGS = new Set(["i", "em", "b", "strong", "sub", "sup"]);
 
@@ -153,7 +152,7 @@ export function BarItem({ title, valueLabel, ratio, meta = [] }) {
 
 export function WorkspaceNav({ currentUser, onSignOut }) {
   const isAuthed = Boolean(currentUser);
-  const accountLabel = isAuthed ? getUserDisplayName(currentUser.email) : "My account";
+  const accountLabel = "My account";
 
   return (
     <header className="workspace-nav">

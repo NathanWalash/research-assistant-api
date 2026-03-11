@@ -962,6 +962,49 @@ body[data-page="endpoints"] .workspace-stack > .surface-card:last-child {
   max-width: none;
 }
 
+body[data-page="account"] .workspace-stack > .surface-card:last-child,
+body[data-page="projects"] .workspace-stack > .surface-card:last-child {
+  max-width: none;
+}
+
+body[data-page="projects"] .project-recommend-card {
+  width: 100%;
+}
+
+body[data-page="account"] .account-quick-links {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+body[data-page="account"] .account-quick-links a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  text-align: center;
+}
+
+body[data-page="account"] .account-summary-card {
+  display: grid;
+  gap: 14px;
+}
+
+body[data-page="account"] .account-summary-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+body[data-page="account"] .account-summary-project-list {
+  gap: 12px;
+  align-content: start;
+}
+
+body[data-page="account"] .account-summary-project-list .result-item {
+  display: grid;
+  gap: 8px;
+}
+
 .endpoints-surface {
   padding: 24px;
 }
@@ -1990,6 +2033,11 @@ textarea {
   }
 
   .analytics-author-search-form {
+    grid-template-columns: 1fr;
+  }
+
+  body[data-page="account"] .account-quick-links,
+  body[data-page="account"] .account-summary-grid {
     grid-template-columns: 1fr;
   }
 
