@@ -72,7 +72,7 @@ jobs:
         working-directory: src/research_assistant_api/frontend
 
       - name: Build frontend bundle
-        run: npm run build
+        run: npm run build:prod
         working-directory: src/research_assistant_api/frontend
 
       - name: Verify committed bundle is up to date
