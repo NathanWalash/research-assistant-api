@@ -9,6 +9,8 @@ This repo is set up to deploy on Railway using the root `Dockerfile`.
 - `railway.toml` sets Dockerfile deploy mode plus `/health` as the deployment healthcheck
 - the app listens on Railway's injected `PORT` variable
 - config now accepts Railway-style `postgres://` and `postgresql://` database URLs and normalizes them to the SQLAlchemy `postgresql+psycopg://` form
+- static frontend is served by the same app under `/app`
+- MCP HTTP mount is optional via `RESEARCH_API_MCP_ENABLED=true`
 
 ## Railway Project Setup
 
@@ -36,6 +38,8 @@ Important note:
 - `RESEARCH_API_APP_NAME=Research Assistant API`
 - `RESEARCH_API_APP_VERSION=0.1.0`
 - `RESEARCH_API_JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60`
+- `RESEARCH_API_MCP_ENABLED=false`
+- `RESEARCH_API_MCP_MOUNT_PATH=/mcp`
 
 ## First Deployment
 
@@ -50,9 +54,52 @@ At this point the API service is live, but the database will still be empty.
 
 ## Loading Data Into Railway Postgres
 
-The easiest path is to load the Railway Postgres database from your local machine.
+There are two valid paths. The recommended one is snapshot/restore because it avoids rerunning heavy ingestion/embedding jobs in a constrained hosted shell.
 
-### Option 1. Ingest directly into Railway Postgres
+### Recommended Path: Snapshot/Restore (No Pipeline Re-run)
+
+Use this when your local database is already populated with:
+
+- metadata ingestion
+- citation-edge ingestion
+- generated embeddings
+
+#### A) Build data locally once
+
+```bash
+.\.venv\Scripts\python.exe -m alembic upgrade head
+.\.venv\Scripts\python.exe -m research_assistant_api.ingestion.cli --citation-csv-path data/derived/leeds_citation_edges.csv
+.\.venv\Scripts\python.exe -m research_assistant_api.embeddings.cli
+```
+
+#### B) Export data-only snapshot from local Postgres
+
+```bash
+pg_dump --data-only --no-owner --no-privileges --format=custom ^
+  --file artifacts/research_assistant_data.dump ^
+  "postgresql://research_user:research_password@localhost:5433/research_assistant"
+```
+
+#### C) Deploy app on Railway (schema migrations on startup)
+
+The container entrypoint applies migrations automatically.
+
+#### D) Restore snapshot into Railway Postgres
+
+```bash
+pg_restore --data-only --no-owner --no-privileges ^
+  --dbname "$RAILWAY_DATABASE_URL" artifacts/research_assistant_data.dump
+```
+
+#### E) Verify seed success
+
+- `GET /health`
+- `GET /papers/search`
+- `GET /papers/{id}/similar`
+- `GET /papers/{id}/citations`
+- `/app` frontend loads and can search papers
+
+### Alternative Path: Direct Local Jobs Against Railway DB
 
 From your local machine:
 
@@ -72,10 +119,6 @@ From your local machine:
 .\.venv\Scripts\python.exe -m research_assistant_api.ingestion.cli --citation-csv-path data/derived/leeds_citation_edges.csv
 ```
 
-### Option 2. Restore from an existing dump
-
-If you already have a fully populated local Postgres instance, you can also export and restore that data into Railway Postgres instead of re-running ingestion and embeddings.
-
 ## Verification Checklist
 
 After deployment:
@@ -91,6 +134,7 @@ After deployment:
 ## Limits And Practical Notes
 
 - Railway trial resources are limited, so full embedding generation may take time and consume trial credit.
-- The deployed app image is only intended to serve the API. Heavy ingestion and embedding jobs are better run from your local machine against the Railway database.
+- The deployed app image is intended to serve the API. Heavy ingestion and embedding jobs should run locally or via one-off job containers.
 - Railway healthchecks only validate startup readiness, not ongoing application health after deployment.
 - The same Railway service also serves the static frontend from `/app`, so you do not need a separate frontend host for the coursework demo.
+- For repeatable deploys, keep a versioned snapshot artifact strategy for dataset refreshes rather than ad-hoc shell commands on production databases.

@@ -1,8 +1,8 @@
 # Research Assistant API
 
-Research Assistant API is a FastAPI service for discovering and organising scholarly research data derived from OpenAlex.
+Research Assistant API is a production-style FastAPI backend (plus a browser frontend at `/app`) for scholarly discovery and research workflow management on an OpenAlex-derived Leeds corpus.
 
-The current MVP focuses on semantic discovery, metadata analytics, and research organisation workflows for the Leeds article subset.
+The system combines relational search, vector similarity, citation-subgraph traversal, user workspaces, and deployment-grade CI/CD.
 
 ## Documentation Map
 
@@ -10,425 +10,319 @@ The current MVP focuses on semantic discovery, metadata analytics, and research 
 - [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md)
 - [API Examples](docs/api-examples.md)
+- [Endpoint Test Coverage](docs/endpoint-test-coverage.md)
 - [MCP Usage](docs/mcp-usage.md)
 - [Operations](docs/operations.md)
 - [Railway Deployment](docs/railway-deployment.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Demo Flow](docs/demo-flow.md)
 
-## Current Status
+## Delivered Scope
 
-The repository currently contains the raw Leeds articles CSV, the application foundation, and the first discovery API endpoints. The implemented batches currently cover:
+- paper discovery, paper detail, topic and author exploration
+- vector-based similar-paper retrieval with pgvector
+- citation neighbourhood and shortest-path traversal on a Leeds-only citation subgraph
+- corpus analytics endpoints (top papers, topics, yearly trends)
+- JWT auth (`register`, `login`, `me`)
+- protected project, reading-list, and annotation workflows
+- configurable recommendation scoring (`semantic`, `citation`, `hybrid`)
+- MCP read-only tools for public discovery and analytics
+- React frontend served by FastAPI at `/app`
+- Dockerized runtime and Railway deployment configuration
 
-- FastAPI service setup
-- database foundation and Alembic migrations
-- initial relational schema
-- CSV ingestion for papers, topics, authors, institutions, and optional citation edges
-- discovery endpoints for papers, authors, and topics
-- pgvector-backed paper embedding support
-- embedding generation pipeline using sentence-transformers
-- derived Leeds-to-Leeds citation edge dataset generation
-- analytics endpoints for top papers, topic distribution, and publication trends
-- JWT-based authentication endpoints
-- protected project CRUD endpoints
-- protected reading list endpoints
-- authenticated annotation CRUD endpoints
-- citation neighbourhood and directed citation path endpoints
-- similar papers endpoint
-- project recommendation endpoint
-- configurable recommendation scoring modes
-- multi-page static frontend served by FastAPI at `/app`
-- read-only MCP server support for public discovery and analytics tools
-- container deployment files for the API runtime
-- smoke and endpoint tests
+## Stack And Justification
 
-## Local Development
+| Layer | Choice | Why |
+| --- | --- | --- |
+| API framework | FastAPI | Strong schema validation, OpenAPI generation, clean dependency injection, async-ready architecture |
+| ORM + migrations | SQLAlchemy 2 + Alembic | Explicit domain model, deterministic migration history, test/runtime parity |
+| Database | PostgreSQL 16 | Reliable relational semantics and efficient filtering/joins for scholarly metadata |
+| Vector search | pgvector | Co-locates embeddings with metadata and avoids introducing a separate vector datastore |
+| Embeddings | `sentence-transformers/all-MiniLM-L6-v2` | Good quality/performance tradeoff for local reproducible batch embedding |
+| Auth | JWT bearer tokens | Stateless API auth with straightforward frontend integration |
+| Frontend | React + esbuild | Lightweight build with explicit API interaction and low deployment complexity |
+| CI/CD | GitHub Actions + Docker + Railway | Repeatable quality gates and one-click cloud deploy path |
 
-1. Copy `.env.example` to `.env`.
-2. Start PostgreSQL with `docker compose up -d db`.
-3. Create a virtual environment with `python -m venv .venv`.
-4. Activate it with `.\.venv\Scripts\Activate.ps1`.
-5. Install dependencies with `python -m pip install -e ".[dev]"`.
-6. Run the API with `uvicorn research_assistant_api.main:app --reload`.
+## Data Model And Storage Strategy
 
-The API will be available at `http://127.0.0.1:8000` and the interactive frontend at `http://127.0.0.1:8000/app`.
+Core scholarly entities:
 
-MCP can also run locally in stdio mode:
+- `papers`
+- `authors`
+- `institutions`
+- `topics`
+- `paper_authors`
+- `citations`
 
-```bash
-research-assistant-mcp --transport stdio
-```
+User workflow entities:
 
-For HTTP mount mode, set `RESEARCH_API_MCP_ENABLED=true` and run the API.
+- `users`
+- `projects`
+- `reading_list_items`
+- `annotations`
 
-If you prefer pinned local dependencies instead of editable install with version ranges, use `python -m pip install -r requirements-dev.txt`.
+Storage decisions:
 
-The default database configuration uses PostgreSQL with the `pgvector` image so vector support can be added later without replacing the local database container. The container is published on `localhost:5433` to avoid clashing with an existing PostgreSQL service on the default `5432` port.
+- embeddings are stored on `papers.embedding` (pgvector)
+- citation edges are explicit directed pairs (`citing_paper_id -> cited_paper_id`)
+- SQLite is used only for lightweight test runs with Python cosine fallback logic
 
-The repository now includes:
+## API Surface
 
-- `requirements.txt` for pinned runtime dependencies
-- `requirements-dev.txt` for local development tooling and tests
-- `pyproject.toml` as the main package metadata source
+Public discovery/analytics:
 
-The local `.venv` is a development convenience only. It is ignored by git and should not be committed.
+- `GET /health`
+- `GET /papers/search`
+- `GET /papers/{paper_id}`
+- `GET /papers/{paper_id}/similar`
+- `GET /papers/{paper_id}/citations`
+- `GET /papers/{paper_id}/path/{target_paper_id}`
+- `GET /authors`
+- `GET /authors/search`
+- `GET /authors/{author_id}`
+- `GET /authors/{author_id}/papers`
+- `GET /topics`
+- `GET /topics/{topic_id}/papers`
+- `GET /analytics/top-papers`
+- `GET /analytics/topics`
+- `GET /analytics/trends`
 
-## Testing
+Authenticated:
 
-Run the smoke test suite with:
+- `POST /auth/register`
+- `POST /auth/login`
+- `GET /auth/me`
+- `POST /papers/{paper_id}/annotations`
+- `GET /papers/{paper_id}/annotations`
+- `GET /annotations/{annotation_id}`
+- `PATCH /annotations/{annotation_id}`
+- `DELETE /annotations/{annotation_id}`
+- `POST /projects`
+- `GET /projects`
+- `GET /projects/{project_id}`
+- `PATCH /projects/{project_id}`
+- `DELETE /projects/{project_id}`
+- `GET /projects/{project_id}/recommendations`
+- `POST /projects/{project_id}/reading-list`
+- `GET /projects/{project_id}/reading-list`
+- `PATCH /reading-list-items/{item_id}`
+- `DELETE /reading-list-items/{item_id}`
 
-```bash
-.\.venv\Scripts\python.exe -m pytest
-```
+Removed by design:
 
-The current tests cover:
+- `GET /analytics/collaborations` (removed due to poor interactive performance at this dataset size)
 
-- application startup
-- health endpoint response
-- SQLAlchemy session connectivity
-- Alembic migration wiring against SQLite
-- CSV ingestion for papers, topics, authors, institutions, and optional citation edges
-- discovery API read endpoints for papers, authors, and topics
-- citation graph API read endpoints
-- embedding generation pipeline and similarity ranking
-- analytics API read endpoints
-- authentication endpoints and bearer-token access control
-- protected project CRUD workflows
-- protected reading list workflows
-- authenticated annotation creation, listing, update, and deletion
-- project recommendation ranking and access control
-- PostgreSQL-only integration checks for vector similarity and lookup indexes
-- frontend page and static asset smoke coverage
-- MCP server tool inventory and validation coverage
-- MCP FastAPI mount configuration coverage
+## Pipeline Design
 
-## Continuous Integration
+### 1) CSV Ingestion Pipeline
 
-GitHub Actions is configured in `.github/workflows/ci.yml`.
-
-The workflow currently runs:
-
-- Ruff lint checks on `src` and `tests`
-- the Python smoke test suite on every push and pull request
-- an MCP contract suite for tool inventory and mount behavior
-- an Alembic migration check against PostgreSQL using a `pgvector` service container
-- PostgreSQL-only integration tests for lookup indexes and vector similarity
-- a Docker-based app startup smoke check
-
-## Virtualenv And Docker
-
-The local `.venv` is for development on your machine. Docker does not use your host virtual environment.
-
-In the current repo:
-
-- `docker compose` can run PostgreSQL locally
-- `docker compose --profile app` can also run the API container locally
-- the API can still be run directly from your local Python environment during development
-
-The container installs runtime dependencies from `pyproject.toml` inside the image. Your local `.venv` is not copied into or reused by the container.
-
-## Container Deployment
-
-The repository now includes a `Dockerfile`, `.dockerignore`, and an optional `api` service in `docker-compose.yml`.
-
-To run the API container locally alongside PostgreSQL:
+Command:
 
 ```bash
-docker compose --profile app up -d --build
+.\.venv\Scripts\python.exe -m research_assistant_api.ingestion.cli
 ```
 
-The API container:
+Role:
 
-- waits for the PostgreSQL service to become healthy
-- runs `alembic upgrade head` on startup
-- serves the FastAPI app on port `8000`
+- parses OpenAlex CSV rows
+- upserts papers/authors/institutions/topics/authorship links
+- optionally imports citation edges from a dedicated edge CSV
+- skips malformed rows and reports skip counts instead of failing the full run
 
-Useful commands:
+Time complexity:
 
-- `docker compose --profile app logs api --tail 100`
-- `docker compose --profile app up -d db`
-- `docker compose --profile app config`
+- `O(N + E)` where `N` is source metadata rows and `E` is optional citation-edge rows
 
-The runtime image is intended for serving the API and using already stored embeddings. Embedding generation is still best run as an explicit job from the local development environment or a separate worker environment with the semantic dependencies available.
+### 2) Embedding Pipeline
 
-## Data Ingestion
-
-Import the main Leeds/OpenAlex-derived CSV with:
+Command:
 
 ```bash
-research-assistant-ingest
+.\.venv\Scripts\python.exe -m research_assistant_api.embeddings.cli
 ```
 
-Useful options:
+Role:
 
-- `research-assistant-ingest --limit 100`
-- `research-assistant-ingest --csv-path path/to/data.csv`
-- `research-assistant-ingest --citation-csv-path path/to/citation_edges.csv`
+- builds embedding text from `title + abstract` (title-only fallback if abstract missing)
+- computes vectors in batches
+- writes vectors to `papers.embedding`
+- supports incremental mode (missing only) and `--force` re-embed mode
+- prints incremental progress (`Embedded X/Y papers`)
 
-The derived Leeds citation-edge dataset generated for this repo lives at:
+Approximate complexity:
 
-- `data/derived/leeds_citation_edges.csv`
+- model inference dominates runtime: `O(N * d)` for `N` papers and embedding dimension `d` (384 for MiniLM-L6-v2), plus DB write cost
 
-The current Leeds CSV includes:
+### 3) Citation Graph Export Pipeline
 
-- papers
-- topics
-- authors
-- institutions
-- citation counts
-
-It does not include citation edge pairs in the main file, so citation neighbourhood data requires a supplementary CSV with `citing_paper_id` and `cited_paper_id` columns.
-
-The importer now skips malformed source rows that are missing required paper fields such as `id` or `display_name`, and reports that skipped-row count in the CLI summary instead of aborting the whole import.
-
-OpenAlex author IDs are treated as the authoritative author key during ingestion. ORCID values are stored as optional metadata, but they are not enforced as globally unique because the Leeds export contains repeated ORCIDs across different OpenAlex author records.
-
-Paper titles and abstracts are stored without importer-side truncation so the full OpenAlex text can be retained even when individual rows exceed conservative `VARCHAR` lengths.
-
-The same principle applies to DOI metadata: DOIs are retained when present, but they are not enforced as globally unique because the Leeds export contains repeated DOI values across different OpenAlex work IDs.
-
-## Citation Graph Export
-
-The main Leeds CSV does not contain explicit citation edge pairs, so citation-graph traversal is only possible after an enrichment step.
-
-The repo now includes an optional export command that uses `openalexnet`'s OpenAlex client with the exact Leeds work IDs already present in the dataset:
+Command:
 
 ```bash
-research-assistant-export-citation-graph
+.\.venv\Scripts\python.exe -m research_assistant_api.citation_graph.cli --rate-interval 0.2
 ```
 
-Useful options:
+Role:
 
-- `research-assistant-export-citation-graph --limit 100`
-- `research-assistant-export-citation-graph --batch-size 50`
-- `research-assistant-export-citation-graph --rate-interval 0.2`
-- `research-assistant-export-citation-graph --reset`
-- `research-assistant-export-citation-graph --output-path .tmp/leeds_citation_edges.csv`
+- queries OpenAlex in Leeds-ID batches
+- persists progress checkpoints for resumability
+- writes Leeds-to-Leeds edge pairs
+- exports a usable `citing_paper_id,cited_paper_id` CSV
 
-The export workflow:
-
-1. reads the Leeds work IDs from the dataset CSV
-2. batches them into exact `openalex:` filter queries for OpenAlex
-3. fetches those works batch-by-batch and appends them to a JSONL audit file
-4. writes Leeds-to-Leeds `citing_paper_id,cited_paper_id` edges incrementally
-5. records resumable progress after every completed batch
-
-Output files are written under `.tmp/` by default:
+Outputs:
 
 - `.tmp/leeds_citation_queries.csv`
 - `.tmp/leeds_citation_works.jsonl`
 - `.tmp/leeds_citation_edges.csv`
 - `.tmp/leeds_citation_progress.json`
 
-The audit JSONL is intentionally minimal and stores only the work `id` plus `referenced_works`, which keeps resume state smaller and avoids writing unnecessary metadata for this enrichment task.
+Approximate complexity:
 
-If a long run is interrupted, rerunning the same command will resume from the existing JSONL file and continue fetching the remaining Leeds work batches. Use `--reset` only when you want to discard the current JSONL, edge CSV, and progress state and start again from scratch.
+- network-bound `O(B * R)` where `B` is batch count and `R` is remote page retrieval cost
 
-The progress JSON includes completed batches, fetched papers, exported edges, elapsed seconds, and an estimated remaining time once the current run has finished at least one new batch.
+### 4) Recommendation Algorithm
 
-This produces a real Leeds-to-Leeds citation subgraph. It is still a subset graph, so citation neighbourhoods and shortest paths are only complete within the Leeds corpus, not across all OpenAlex works.
+Endpoint:
 
-Because the main Leeds metadata CSV contains a small number of malformed rows that are skipped by paper ingestion, the citation importer also skips any derived edges whose citing or cited paper is not present in the local `papers` table.
+- `GET /projects/{project_id}/recommendations`
 
-If you later want to load those edges into PostgreSQL, rerun ingestion with the exported edge file:
+Modes:
 
-```bash
-research-assistant-ingest --citation-csv-path data/derived/leeds_citation_edges.csv
+- `semantic`
+- `citation`
+- `hybrid` (default)
+
+Default hybrid score:
+
+```text
+score = 0.7 * semantic_similarity + 0.3 * citation_signal
 ```
 
-## Embeddings
+Complexity sketch:
 
-Paper embeddings are generated from:
+- semantic ranking roughly scales with `O(C * K)` for candidate count `C` and reading-list context size `K`
+- citation signal is derived from direct citation-neighbour relationships in the local subgraph
 
-- `title + abstract`
+## Dataset Constraints And Honest Scope
 
-If a paper has no abstract, the pipeline falls back to the title alone.
+The primary Leeds metadata CSV contains citation counts (`cited_by_count`) but not full citation-edge pairs. Therefore:
 
-Generate embeddings with:
+- metadata analytics can use citation counts immediately
+- traversal endpoints require supplemental edge ingestion
+- resulting graph coverage is complete only inside the Leeds subset
 
+This is intentional and explicitly documented in this repo and API behavior.
+
+## Local Development
+
+1. Copy `.env.example` to `.env`.
+2. Start database:
 ```bash
-research-assistant-embed --limit 100
+docker compose up -d db
+```
+3. Create + activate virtualenv:
+```bash
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+4. Install:
+```bash
+python -m pip install -e ".[dev]"
+```
+5. Run migrations:
+```bash
+.\.venv\Scripts\python.exe -m alembic upgrade head
+```
+6. Ingest dataset:
+```bash
+.\.venv\Scripts\python.exe -m research_assistant_api.ingestion.cli
+```
+7. Generate embeddings:
+```bash
+.\.venv\Scripts\python.exe -m research_assistant_api.embeddings.cli
+```
+8. Start API:
+```bash
+.\.venv\Scripts\python.exe -m uvicorn research_assistant_api.main:app --reload
 ```
 
-Useful options:
+Endpoints:
 
-- `research-assistant-embed --paper-id https://openalex.org/W123`
-- `research-assistant-embed --limit 100 --force`
+- API: `http://127.0.0.1:8000`
+- Frontend: `http://127.0.0.1:8000/app`
+- OpenAPI: `http://127.0.0.1:8000/openapi.json`
 
-Implementation notes:
+Optional MCP:
 
-- the CLI prints running progress as `Embedded X/Y papers` while each batch completes
-- the final JSON summary is still written to standard output for scripting
-- PostgreSQL stores embeddings in a `pgvector` column on `papers.embedding`
-- similarity queries use cosine distance in Postgres
-- SQLite tests store embeddings as JSON and rank with a Python cosine fallback
-- the default model is `sentence-transformers/all-MiniLM-L6-v2`
+```bash
+.\.venv\Scripts\python.exe -m research_assistant_api.mcp.cli --transport stdio
+```
 
-## Dataset Limitation
+## Test Strategy
 
-The main Leeds metadata CSV loaded into the project contains aggregate citation counts such as `cited_by_count`, but not explicit work-to-work citation edges.
+Main commands:
 
-That means the base metadata export supports:
+```bash
+.\.venv\Scripts\python.exe -m ruff check src tests
+.\.venv\Scripts\python.exe -m pytest
+```
 
-- paper search and metadata lookup
-- topic, author, and institution analytics
-- popularity and influence ranking using `cited_by_count`
-- semantic similarity using stored embeddings
-- user workflows such as projects, reading lists, and notes
+What is validated:
 
-It does not support true citation-graph operations by itself. Those only become possible after ingesting the supplementary citation-edge dataset.
+- API contract inventory and validation edge cases
+- auth and authorization boundaries
+- discovery, similarity, citation, analytics behavior
+- project/reading-list/annotation ownership rules
+- recommendation ranking modes and weight handling
+- ingestion, embedding, and citation-export CLI behavior
+- MCP tool registry and HTTP mount integration
+- PostgreSQL integration checks (including pgvector behavior)
+- frontend smoke checks
 
-With the supplementary Leeds-to-Leeds edge dataset now generated for this repo, the system can also support:
+Detailed endpoint-to-test mapping:
 
-- citation neighbourhood traversal
-- shortest citation path discovery
+- [Endpoint Test Coverage Matrix](docs/endpoint-test-coverage.md)
 
-The remaining limitation is scope:
+## CI/CD Quality Gates
 
-- citation paths are complete only within the Leeds subset
-- paths that would require non-Leeds intermediary papers are outside this local graph
-- citation-proximity scoring is still Leeds-subgraph-aware rather than global
+GitHub Actions (`.github/workflows/ci.yml`) includes:
 
-That supplementary graph is still a Leeds-only induced subgraph rather than the full global OpenAlex citation network.
+- OpenAPI contract gate
+- MCP contract gate (including mounted HTTP integration test)
+- frontend build reproducibility gate
+- full lint + pytest suite
+- PostgreSQL migration and integration gate
+- Docker smoke gate
+- Docker MCP-mount smoke gate
 
-For the report and presentation, the honest framing is:
+## Deployment (Railway)
 
-- citation counts are used for influence-style analytics
-- citation traversal is implemented only after supplementing the Leeds metadata export with explicit Leeds-to-Leeds citation edges
-- the implemented recommendation feature supports semantic-only, citation-only, and hybrid project scoring
+Railway deployment uses:
 
-## Current Scope
+- root `Dockerfile`
+- `railway.toml` healthcheck (`/health`)
+- startup migration via `docker/entrypoint.sh` (`alembic upgrade head`)
 
-- paper discovery and metadata lookup
-- corpus analytics and influence metrics based on `cited_by_count`
-- citation neighbourhood lookup within the Leeds citation subgraph
-- directed shortest citation path lookup within the Leeds citation subgraph
-- JWT authentication
-- project CRUD workflows
-- reading list and annotation workflows
-- semantic similarity via stored embeddings
-- project recommendations via configurable semantic, citation, or hybrid scoring
+Detailed steps:
 
-## API Pagination Coverage
+- [Railway Deployment Guide](docs/railway-deployment.md)
 
-`limit` and `offset` are currently supported on:
+## Fast Data Migration To Railway (No Pipeline Re-run)
 
-- `GET /papers/search`
-- `GET /papers/{id}/similar`
-- `GET /papers/{id}/citations`
-- `GET /papers/{id}/annotations`
-- `GET /authors`
-- `GET /authors/{id}/papers`
-- `GET /topics`
-- `GET /topics/{id}/papers`
-- `GET /analytics/top-papers`
-- `GET /analytics/topics`
-- `GET /projects/{id}/recommendations`
+Recommended production path after local pipelines complete:
 
-Endpoints returning collections without `limit`/`offset`:
+1. Run ingestion + embeddings + citation-edge import locally once.
+2. Export a PostgreSQL data snapshot from the local populated DB.
+3. Deploy API + empty schema to Railway.
+4. Restore snapshot into Railway Postgres.
+5. Verify `/health`, `/papers/search`, `/papers/{id}/similar`, `/projects/{id}/recommendations`.
 
-- `GET /analytics/trends` (filters by `start_year` / `end_year` only)
-- `GET /projects`
-- `GET /projects/{id}/reading-list`
+This avoids expensive re-computation in Railway runtime shells and is the fastest path to a fully seeded deployed environment.
 
-The frontend uses backend pagination where available and falls back to client-side paging for `GET /analytics/trends`.
+Implementation details and commands are documented in:
 
-## Implemented Authentication Endpoints
+- [Railway Deployment Guide](docs/railway-deployment.md)
+- [Operations Guide](docs/operations.md)
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
+## Notes On Branch History
 
-Authentication uses bearer tokens signed with the JWT settings defined in `.env.example`.
-
-## Implemented Project Endpoints
-
-- `POST /projects`
-- `GET /projects`
-- `GET /projects/{id}`
-- `PATCH /projects/{id}`
-- `DELETE /projects/{id}`
-- `GET /projects/{id}/recommendations`
-
-Project routes are scoped to the authenticated user, so users can only see and modify their own projects.
-
-Project recommendations are built from the papers already saved in the project's reading list. Candidate papers already present in the reading list are excluded.
-
-Recommendation scoring now supports:
-
-- `mode=hybrid` for combined semantic and citation scoring
-- `mode=semantic` for embedding-only ranking
-- `mode=citation` for citation-proximity-only ranking
-- optional `semantic_weight` and `citation_weight` query parameters to override the default mix
-
-Default hybrid scoring uses:
-
-- `0.7` semantic similarity
-- `0.3` citation signal within the Leeds citation subgraph
-
-The response now includes the total recommendation score plus the semantic and citation component scores, together with the applied weights.
-
-## Demo Flow
-
-For a concise coursework demo, the strongest sequence is:
-
-1. search the Leeds corpus with `GET /papers/search`
-2. open a paper record with `GET /papers/{id}`
-3. show semantic retrieval with `GET /papers/{id}/similar`
-4. show Leeds citation-neighbourhood lookup with `GET /papers/{id}/citations`
-5. register and log in
-6. create a project
-7. add papers to the reading list
-8. request project recommendations
-9. switch between `mode=semantic`, `mode=citation`, and `mode=hybrid` to explain the ranking trade-off
-
-## Implemented Reading List Endpoints
-
-- `POST /projects/{id}/reading-list`
-- `GET /projects/{id}/reading-list`
-- `PATCH /reading-list-items/{id}`
-- `DELETE /reading-list-items/{id}`
-
-Reading list items are scoped through the owning project, so users can only manage items in their own projects.
-
-## Implemented Annotation Endpoint
-
-- `POST /papers/{id}/annotations`
-- `GET /papers/{id}/annotations`
-- `GET /annotations/{id}`
-- `PATCH /annotations/{id}`
-- `DELETE /annotations/{id}`
-
-Annotations are private to the authenticated user who created them.
-
-## Implemented Discovery Endpoints
-
-- `GET /papers/search`
-- `GET /papers/{id}`
-- `GET /papers/{id}/citations`
-- `GET /papers/{id}/path/{target_id}`
-- `GET /papers/{id}/similar`
-- `GET /authors`
-- `GET /authors/search?query={text}`
-- `GET /authors/{id}`
-- `GET /authors/{id}/papers`
-- `GET /topics`
-- `GET /topics/{id}/papers`
-
-## Implemented Analytics Endpoints
-
-- `GET /analytics/top-papers`
-- `GET /analytics/topics`
-- `GET /analytics/trends`
-
-`GET /analytics/collaborations` was intentionally removed. The co-authorship query
-was too expensive for the current dataset size and produced poor interactive
-performance for the frontend demo workflow.
-
-## Future Extension
-
-- citation graph exploration beyond the Leeds subset
-- bidirectional or undirected citation path options if needed
-- richer citation-aware recommendation features that use multi-hop path signals instead of direct-neighbour citation counts alone
-- annotation listing, editing, and deletion endpoints
-- deployment verification on a hosted platform such as Render or Railway
+Feature branches are intentionally retained to show staged development milestones and auditability.
