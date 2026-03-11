@@ -62,6 +62,22 @@ The interactive frontend will be available on `http://127.0.0.1:8000/app` with s
 - account
 - login and registration
 
+## Optional MCP Server
+
+Run MCP locally in stdio mode:
+
+```bash
+.\.venv\Scripts\python.exe -m research_assistant_api.mcp.cli --transport stdio
+```
+
+Enable MCP HTTP mount in the FastAPI app:
+
+```bash
+$env:RESEARCH_API_MCP_ENABLED="true"
+$env:RESEARCH_API_MCP_MOUNT_PATH="/mcp"
+.\.venv\Scripts\python.exe -m uvicorn research_assistant_api.main:app --reload
+```
+
 ## Optional Citation Graph Enrichment
 
 To fetch Leeds-to-Leeds citation edges from OpenAlex and resume automatically if interrupted:

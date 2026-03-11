@@ -1,3 +1,5 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -41,14 +43,37 @@ def create_app() -> FastAPI:
         "analytics": "analytics.html",
         "account": "account.html",
     }
+    mcp_server = None
+    mcp_app = None
+    if settings.mcp_enabled:
+        from research_assistant_api.mcp.server import create_mcp_server
+
+        mcp_server = create_mcp_server(settings)
+        mcp_app = mcp_server.streamable_http_app()
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        if mcp_server is None:
+            yield
+            return
+        async with mcp_server.session_manager.run():
+            yield
+
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
         description=API_DESCRIPTION,
         openapi_tags=OPENAPI_TAGS,
         debug=settings.debug,
+        lifespan=lifespan,
     )
     app.include_router(api_router, prefix=settings.api_prefix)
+    if mcp_app is not None:
+        app.mount(
+            settings.mcp_mount_path,
+            mcp_app,
+            name="mcp",
+        )
     app.mount(
         "/app/static",
         StaticFiles(directory=str(frontend_dir)),

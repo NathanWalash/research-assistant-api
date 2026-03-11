@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     dataset_csv_path: Path = Path("UniOfLeedsArticles2018_to_Present.csv")
     citation_edges_csv_path: Path | None = None
     ingestion_batch_size: int = 500
+    mcp_enabled: bool = False
+    mcp_name: str = "Research Assistant MCP"
+    mcp_host: str = "127.0.0.1"
+    mcp_port: int = 8001
+    mcp_mount_path: str = "/mcp"
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -48,6 +53,8 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def validate_runtime_constraints(self) -> "Settings":
         self.database_url = normalize_database_url(self.database_url)
+        if not self.mcp_mount_path.startswith("/"):
+            self.mcp_mount_path = f"/{self.mcp_mount_path}"
 
         if self.environment != "production":
             return self

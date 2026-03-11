@@ -10,6 +10,7 @@ The current MVP focuses on semantic discovery, metadata analytics, and research 
 - [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md)
 - [API Examples](docs/api-examples.md)
+- [MCP Usage](docs/mcp-usage.md)
 - [Operations](docs/operations.md)
 - [Railway Deployment](docs/railway-deployment.md)
 - [Troubleshooting](docs/troubleshooting.md)
@@ -37,6 +38,7 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 - project recommendation endpoint
 - configurable recommendation scoring modes
 - multi-page static frontend served by FastAPI at `/app`
+- read-only MCP server support for public discovery and analytics tools
 - container deployment files for the API runtime
 - smoke and endpoint tests
 
@@ -50,6 +52,14 @@ The repository currently contains the raw Leeds articles CSV, the application fo
 6. Run the API with `uvicorn research_assistant_api.main:app --reload`.
 
 The API will be available at `http://127.0.0.1:8000` and the interactive frontend at `http://127.0.0.1:8000/app`.
+
+MCP can also run locally in stdio mode:
+
+```bash
+research-assistant-mcp --transport stdio
+```
+
+For HTTP mount mode, set `RESEARCH_API_MCP_ENABLED=true` and run the API.
 
 If you prefer pinned local dependencies instead of editable install with version ranges, use `python -m pip install -r requirements-dev.txt`.
 
@@ -89,6 +99,8 @@ The current tests cover:
 - project recommendation ranking and access control
 - PostgreSQL-only integration checks for vector similarity and lookup indexes
 - frontend page and static asset smoke coverage
+- MCP server tool inventory and validation coverage
+- MCP FastAPI mount configuration coverage
 
 ## Continuous Integration
 
@@ -98,6 +110,7 @@ The workflow currently runs:
 
 - Ruff lint checks on `src` and `tests`
 - the Python smoke test suite on every push and pull request
+- an MCP contract suite for tool inventory and mount behavior
 - an Alembic migration check against PostgreSQL using a `pgvector` service container
 - PostgreSQL-only integration tests for lookup indexes and vector similarity
 - a Docker-based app startup smoke check

@@ -17,6 +17,11 @@ Environment variables use the `RESEARCH_API_` prefix.
 | `RESEARCH_API_EMBEDDING_BATCH_SIZE` | Batch size for embedding generation | `32` |
 | `RESEARCH_API_EMBEDDING_DIMENSIONS` | Expected vector dimensions | `384` |
 | `RESEARCH_API_CITATION_EDGES_CSV_PATH` | Optional citation-edge CSV for ingestion | `data/derived/leeds_citation_edges.csv` |
+| `RESEARCH_API_MCP_ENABLED` | Enable MCP HTTP mount in the FastAPI app | `false` |
+| `RESEARCH_API_MCP_NAME` | MCP server display name | `Research Assistant MCP` |
+| `RESEARCH_API_MCP_HOST` | Host for standalone MCP server runtime | `127.0.0.1` |
+| `RESEARCH_API_MCP_PORT` | Port for standalone MCP server runtime | `8001` |
+| `RESEARCH_API_MCP_MOUNT_PATH` | Mount path for MCP streamable HTTP in FastAPI | `/mcp` |
 
 ## Production Notes
 
@@ -24,3 +29,4 @@ Environment variables use the `RESEARCH_API_` prefix.
 - Production also requires a JWT secret with at least `32` characters.
 - The local Docker Compose file still uses development defaults and is not production deployment config.
 - Railway-style `postgres://...` and `postgresql://...` URLs are normalized automatically to `postgresql+psycopg://...` for SQLAlchemy.
+- The MCP server currently exposes read-only public tools only. Authenticated user routes are intentionally excluded.
