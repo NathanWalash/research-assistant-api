@@ -239,6 +239,11 @@ jobs:
             docker compose --profile app logs api --tail 200
             exit 1
           fi
+          if [ "$CODE" -ge 500 ]; then
+            echo "MCP mount returned server error $CODE"
+            docker compose --profile app logs api --tail 200
+            exit 1
+          fi
           echo "MCP mount returned HTTP $CODE"
 
       - name: Show container logs on failure
