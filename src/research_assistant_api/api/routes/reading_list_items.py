@@ -4,6 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from research_assistant_api.api.dependencies.auth import get_current_user
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.models import User
 from research_assistant_api.repositories.paper_repository import PaperRepository
@@ -43,6 +49,11 @@ def _raise_not_found(error: ReadingListItemNotFoundError) -> None:
     response_model=ReadingListItemResponse,
     summary="Update reading-list item",
     description="Update reading-list priority or notes for an item owned by the authenticated user.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def update_reading_list_item(
     item_id: str,
@@ -62,6 +73,11 @@ def update_reading_list_item(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete reading-list item",
     description="Delete a reading-list item owned by the authenticated user.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def delete_reading_list_item(
     item_id: str,

@@ -3,6 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_404_NOT_FOUND,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.repositories.topic_repository import TopicRepository
 from research_assistant_api.schemas.discovery import PaperSummary, TopicListItem
@@ -26,6 +31,7 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
     response_model=list[TopicListItem],
     summary="List topics",
     description="List topics available in the local Leeds corpus subset.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def list_topics(
     session: Annotated[Session, Depends(get_db)],
@@ -41,6 +47,10 @@ def list_topics(
     response_model=list[PaperSummary],
     summary="List topic papers",
     description="List papers assigned to a topic id.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def list_topic_papers(
     topic_id: str,

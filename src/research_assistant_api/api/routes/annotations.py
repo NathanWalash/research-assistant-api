@@ -4,6 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from research_assistant_api.api.dependencies.auth import get_current_user
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.models import User
 from research_assistant_api.repositories.annotation_repository import AnnotationRepository
@@ -36,6 +42,11 @@ def _raise_not_found(error: AnnotationNotFoundError) -> None:
     response_model=AnnotationResponse,
     summary="Get annotation",
     description="Fetch a single private annotation owned by the authenticated user.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def get_annotation(
     annotation_id: str,
@@ -54,6 +65,11 @@ def get_annotation(
     response_model=AnnotationResponse,
     summary="Update annotation",
     description="Update the text of a private annotation owned by the authenticated user.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def update_annotation(
     annotation_id: str,
@@ -73,6 +89,11 @@ def update_annotation(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete annotation",
     description="Delete a private annotation owned by the authenticated user.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def delete_annotation(
     annotation_id: str,
