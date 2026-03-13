@@ -9,6 +9,7 @@ The system combines relational search, vector similarity, citation-subgraph trav
 - [Getting Started](docs/getting-started.md)
 - [Configuration](docs/configuration.md)
 - [Architecture](docs/architecture.md)
+- [API Documentation (PDF)](docs/Research_Assistant_API_Documentation.pdf)
 - [API Examples](docs/api-examples.md)
 - [Endpoint Test Coverage](docs/endpoint-test-coverage.md)
 - [MCP Usage](docs/mcp-usage.md)
