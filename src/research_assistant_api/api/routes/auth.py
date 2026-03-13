@@ -4,6 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from research_assistant_api.api.dependencies.auth import get_current_user
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_409_CONFLICT,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.models import User
 from research_assistant_api.repositories.user_repository import UserRepository
@@ -40,6 +46,10 @@ def _build_authenticated_user(user: User) -> AuthenticatedUser:
     status_code=status.HTTP_201_CREATED,
     summary="Register user",
     description="Create a user account and return a bearer access token.",
+    responses=merge_responses(
+        RESPONSE_409_CONFLICT,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def register(
     payload: UserRegistrationRequest,
@@ -60,6 +70,10 @@ def register(
     response_model=AccessTokenResponse,
     summary="Log in user",
     description="Authenticate a user and return a bearer access token.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def login(
     payload: UserLoginRequest,
@@ -80,6 +94,7 @@ def login(
     response_model=AuthenticatedUser,
     summary="Get current user",
     description="Return the authenticated user linked to the bearer token.",
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 def get_authenticated_user(
     current_user: Annotated[User, Depends(get_current_user)],

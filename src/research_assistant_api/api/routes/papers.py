@@ -4,6 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from research_assistant_api.api.dependencies.auth import get_current_user
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND,
+    RESPONSE_409_CONFLICT,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.models import User
 from research_assistant_api.repositories.annotation_repository import AnnotationRepository
@@ -64,6 +71,7 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
     response_model=list[PaperSummary],
     summary="Search papers",
     description="Search the local Leeds corpus by free text, topic, year, and citation threshold.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def search_papers(
     session: Annotated[Session, Depends(get_db)],
@@ -91,6 +99,11 @@ def search_papers(
     status_code=status.HTTP_201_CREATED,
     summary="Create paper annotation",
     description="Create a private annotation for the authenticated user on a paper.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def create_annotation(
     paper_id: str,
@@ -110,6 +123,11 @@ def create_annotation(
     response_model=list[AnnotationResponse],
     summary="List paper annotations",
     description="List the authenticated user's annotations for a paper.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def list_annotations(
     paper_id: str,
@@ -135,6 +153,11 @@ def list_annotations(
     response_model=list[SimilarPaperResponse],
     summary="List similar papers",
     description="Return semantically similar papers using stored embeddings.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_409_CONFLICT,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def list_similar_papers(
     paper_id: str,
@@ -163,6 +186,10 @@ def list_similar_papers(
     response_model=CitationNeighborhoodResponse,
     summary="Get citation neighbourhood",
     description="Return papers cited by, and citing, the requested paper within the Leeds citation subgraph.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def get_citation_neighborhood(
     paper_id: str,
@@ -186,6 +213,10 @@ def get_citation_neighborhood(
     response_model=CitationPathResponse,
     summary="Get citation path",
     description="Find a directed shortest citation path within the Leeds citation subgraph.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def get_citation_path(
     paper_id: str,
@@ -214,6 +245,10 @@ def get_citation_path(
     response_model=PaperDetail,
     summary="Get paper",
     description="Return a paper record with metadata, authorship, topic, and citation count.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def get_paper(
     paper_id: str, session: Annotated[Session, Depends(get_db)]

@@ -3,6 +3,11 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_404_NOT_FOUND,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.repositories.author_repository import AuthorRepository
 from research_assistant_api.schemas.discovery import AuthorDetail, PaperSummary
@@ -26,6 +31,7 @@ def _raise_not_found(error: DiscoveryNotFoundError) -> None:
     response_model=list[AuthorDetail],
     summary="List authors",
     description="List authors in the local Leeds corpus subset.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def list_authors(
     session: Annotated[Session, Depends(get_db)],
@@ -45,6 +51,7 @@ def list_authors(
     response_model=list[AuthorDetail],
     summary="Search authors",
     description="Search authors in the local Leeds corpus subset by name or author id.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def search_authors(
     session: Annotated[Session, Depends(get_db)],
@@ -65,6 +72,10 @@ def search_authors(
     response_model=list[PaperSummary],
     summary="List author papers",
     description="List papers associated with a specific author id.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def list_author_papers(
     author_id: str,
@@ -84,6 +95,10 @@ def list_author_papers(
     response_model=AuthorDetail,
     summary="Get author",
     description="Return author metadata and affiliation details.",
+    responses=merge_responses(
+        RESPONSE_404_NOT_FOUND,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def get_author(
     author_id: str, session: Annotated[Session, Depends(get_db)]

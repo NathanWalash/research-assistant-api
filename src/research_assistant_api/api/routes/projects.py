@@ -5,6 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from research_assistant_api.api.dependencies.auth import get_current_user
+from research_assistant_api.api.openapi_responses import (
+    RESPONSE_401_UNAUTHORIZED,
+    RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+    RESPONSE_409_CONFLICT,
+    RESPONSE_422_VALIDATION,
+    merge_responses,
+)
 from research_assistant_api.db.session import get_db
 from research_assistant_api.models import User
 from research_assistant_api.repositories.paper_repository import PaperRepository
@@ -74,6 +81,10 @@ def _raise_not_found(error: ProjectNotFoundError) -> None:
     status_code=status.HTTP_201_CREATED,
     summary="Create project",
     description="Create a user-owned research project.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def create_project(
     payload: ProjectCreateRequest,
@@ -89,6 +100,7 @@ def create_project(
     response_model=list[ProjectResponse],
     summary="List projects",
     description="List projects owned by the authenticated user.",
+    responses=RESPONSE_401_UNAUTHORIZED,
 )
 def list_projects(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -104,6 +116,12 @@ def list_projects(
     status_code=status.HTTP_201_CREATED,
     summary="Add reading-list item",
     description="Add a paper to a project reading list.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_409_CONFLICT,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def add_reading_list_item(
     project_id: str,
@@ -131,6 +149,11 @@ def add_reading_list_item(
     response_model=list[ReadingListItemResponse],
     summary="List reading-list items",
     description="List reading-list items for a user-owned project.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def list_reading_list_items(
     project_id: str,
@@ -149,6 +172,12 @@ def list_reading_list_items(
     response_model=list[ProjectRecommendationResponse],
     summary="List project recommendations",
     description="Recommend papers from reading-list context using semantic, citation, or hybrid scoring.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_409_CONFLICT,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def list_project_recommendations(
     project_id: str,
@@ -193,6 +222,11 @@ def list_project_recommendations(
     response_model=ProjectResponse,
     summary="Get project",
     description="Return a single project owned by the authenticated user.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def get_project(
     project_id: str,
@@ -211,6 +245,11 @@ def get_project(
     response_model=ProjectResponse,
     summary="Update project",
     description="Update the title or description of a user-owned project.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def update_project(
     project_id: str,
@@ -230,6 +269,11 @@ def update_project(
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete project",
     description="Delete a user-owned project and its dependent workflow records.",
+    responses=merge_responses(
+        RESPONSE_401_UNAUTHORIZED,
+        RESPONSE_404_NOT_FOUND_OR_NOT_OWNED,
+        RESPONSE_422_VALIDATION,
+    ),
 )
 def delete_project(
     project_id: str,

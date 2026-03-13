@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from research_assistant_api.api.openapi_responses import RESPONSE_422_VALIDATION
 from research_assistant_api.db.session import get_db
 from research_assistant_api.repositories.analytics_repository import AnalyticsRepository
 from research_assistant_api.schemas.analytics import (
@@ -24,6 +25,7 @@ def _build_service(session: Session) -> AnalyticsService:
     response_model=list[AnalyticsPaperItem],
     summary="List top papers",
     description="Rank papers by citation count with optional topic and year filters.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def list_top_papers(
     session: Annotated[Session, Depends(get_db)],
@@ -46,6 +48,7 @@ def list_top_papers(
     response_model=list[TopicAnalyticsItem],
     summary="Get topic distribution",
     description="Summarise topic coverage and aggregate citation counts across the corpus.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def list_topic_distribution(
     session: Annotated[Session, Depends(get_db)],
@@ -66,6 +69,7 @@ def list_topic_distribution(
     response_model=list[PublicationTrendItem],
     summary="Get publication trends",
     description="Summarise publication output and citation totals by year.",
+    responses=RESPONSE_422_VALIDATION,
 )
 def list_publication_trends(
     session: Annotated[Session, Depends(get_db)],
